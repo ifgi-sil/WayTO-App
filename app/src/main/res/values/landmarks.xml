@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="landmarks">
+        <item>Aasee|water_body|51.949444,7.603514|1500</item>
+        <item>Aral Tankstelle|gas_station|51.967284,7.61386|550</item>
+        <item>Buddenturm|tower|51.96623,7.623138|720</item>
+        <item>Dom|church|51.962825,7.625772|1450</item>
+        <item>Halle Münsterland|stadium|51.949066,7.63982|1750</item>
+        <item>Hbf|train_station|51.956667,7.635|1500</item>
+        <item>Innenstadt|shopping|51.957173,7.627344|2500</item>
+        <item>Leonardo Campus|university|51.973388,7.601604|1700</item>
+        <item>Picasso Museum|museum|51.959883,7.62651|500</item>
+        <item>Preußenstadion|stadium|51.92917,7.624766|1300</item>
+        <item>Schloss|castle|51.963622,7.613187|2750</item>
+        <item>UKM|hospital|51.9603,7.596262|2250</item>
+        <item>York Center|shopping|51.973418,7.611111|1650</item>
+    </string-array>
+
+</resources>

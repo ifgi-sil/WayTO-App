@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:key="pref_category_key_map"
+        android:title="@string/pref_header_map">
+
+        <SwitchPreference
+            android:key="pref_key_map_google"
+            android:title="@string/pref_title_map_google"
+            android:defaultValue="true" />
+
+        <ListPreference
+            android:dependency="pref_key_map_google"
+            android:key="pref_key_map_type"
+            android:title="@string/pref_title_map_type"
+            android:defaultValue="@string/map_type_satellite"
+            android:entries="@array/pref_items_map_type"
+            android:entryValues="@array/pref_values_map_type"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:key="pref_category_key_method"
+        android:title="@string/pref_header_method">
+
+        <ListPreference
+            android:key="pref_key_method"
+            android:title="@string/pref_title_method"
+            android:defaultValue="2"
+            android:entries="@array/pref_items_method"
+            android:entryValues="@array/pref_values_method"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
