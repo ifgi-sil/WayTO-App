@@ -10,11 +10,6 @@ import com.google.android.gms.maps.model.LatLng;
 public abstract class Landmark implements Comparable<Landmark> {
 
     /**
-     * Tag for the logger
-     */
-    private static final String TAG = Landmark.class.toString();
-
-    /**
      * Title (or name)
      */
     private String title;
@@ -26,6 +21,10 @@ public abstract class Landmark implements Comparable<Landmark> {
      * Distance to the map center (dynamic value)
      */
     private double distance = 0;
+    /**
+     * Shifted position if the landmark is off-screen
+     */
+    private LatLng offScreenPosition = null;
     /**
      * Category's drawable for the symbol on the map
      */
@@ -48,16 +47,8 @@ public abstract class Landmark implements Comparable<Landmark> {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public double getReferenceRadius() {
         return referenceRadius;
-    }
-
-    public void setReferenceRadius(double referenceRadius) {
-        this.referenceRadius = referenceRadius;
     }
 
     public double getDistance() {
@@ -68,12 +59,16 @@ public abstract class Landmark implements Comparable<Landmark> {
         this.distance = distance;
     }
 
-    public int getCategoryDrawable() {
-        return categoryDrawable;
+    public LatLng getOffScreenPosition() {
+        return offScreenPosition;
     }
 
-    public void setCategoryDrawable(int categoryDrawable) {
-        this.categoryDrawable = categoryDrawable;
+    public void setOffScreenPosition(LatLng offScreenPosition) {
+        this.offScreenPosition = offScreenPosition;
+    }
+
+    public int getCategoryDrawable() {
+        return categoryDrawable;
     }
 
     public LatLng getPosition() {
