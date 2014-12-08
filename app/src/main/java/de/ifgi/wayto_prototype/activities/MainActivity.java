@@ -46,6 +46,7 @@ import de.ifgi.wayto_prototype.R;
 import de.ifgi.wayto_prototype.landmarks.Landmark;
 import de.ifgi.wayto_prototype.landmarks.PointLandmark;
 import de.ifgi.wayto_prototype.landmarks.RegionalLandmark;
+import de.ifgi.wayto_prototype.map.Heading;
 
 /**
  * Main activity that displays the map
@@ -107,23 +108,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * ID for the "wedge" method
      */
     private final int METHOD_WEDGE = 2;
-
-    /**
-     * North direction ending angle in degree
-     */
-    private final double NORTH = 45;
-    /**
-     * East direction ending angle
-     */
-    private final double EAST = 135;
-    /**
-     * South direction ending angle
-     */
-    private final double SOUTH = -135;
-    /**
-     * West direction ending angle
-     */
-    private final double WEST = -45;
 
     /**
      * Shared preferences instance
@@ -443,9 +427,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             for (int i = 0; i < filteredCandidates.size(); i++) {
                 Landmark l = filteredCandidates.get(i);
                 if (map.getClass() == GoogleMap.class) {
-                    LatLng newPosition = getOffScreenPosition(l);
-                    l = new PointLandmark(l.getTitle(), l.getReferenceRadius(),
-                            l.getCategoryDrawable(), newPosition);
+                    l.setOffScreenPosition(computeOffScreenPosition(l));
                 }
                 // Check if the landmark's position is already covered on the map
                 if (isAreaFree(l.getPosition())) {
@@ -497,15 +479,21 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Bitmap icon = Bitmap.createScaledBitmap(bitmap, SIZE_MARKER, SIZE_MARKER,
                     false);
 
+            // Get the correct position where the landmark shall be displayed
+            LatLng displayedPosition = landmark.getPosition();
+            if (distance != MARKER_ON_SCREEN) {
+                displayedPosition = landmark.getOffScreenPosition();
+            }
+
             // Add the underlying circle to the map
-            addCircleToMap(landmark.getPosition());
+            addCircleToMap(displayedPosition);
 
             // Add the landmark as a marker to the map
             map.addMarker(new MarkerOptions()
                             .anchor(0.5f, 0.5f)
                             .draggable(false)
                             .icon(BitmapDescriptorFactory.fromBitmap(icon))
-                            .position(landmark.getPosition())
+                            .position(displayedPosition)
                             .title(landmark.getTitle())
                             .visible(true)
             );
@@ -527,9 +515,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                         break;
                     case METHOD_WEDGE:
                         // Use the "wedge" method
-                        addArrowToMap(landmark, distance); // TODO remove when addWedge works
-                        Toast.makeText(getApplicationContext(), "Work in progress",
-                                Toast.LENGTH_SHORT).show(); // TODO remove when addWedge works
                         addWedgeToMap(landmark);
                         break;
                 }
@@ -615,7 +600,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 matrix, false);
 
         // Compute the offset position of the arrow
-        LatLng arrowPositionNear = SphericalUtil.computeOffset(landmark.getPosition(),
+        LatLng arrowPositionNear = SphericalUtil.computeOffset(landmark.getOffScreenPosition(),
                 DISTANCE_ARROW * this.mapScreenRatio, reverseHeading);
         // Display the arrow
         map.addMarker(new MarkerOptions()
@@ -642,12 +627,76 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * @param landmark Landmark this function refers to
      */
     private void addWedgeToMap(Landmark landmark) {
-        // TODO
+        // Calculate the distance from the landmark to the edge of the screen
+        LatLng pointAtScreenEdge = null;
+        double lat, lng;
+        if (landmark.getPosition().longitude <
+                map.getProjection().getVisibleRegion().farLeft.longitude) {
+            lng = map.getProjection().getVisibleRegion().farLeft.longitude;
+        } else if (landmark.getPosition().longitude >
+                map.getProjection().getVisibleRegion().farRight.longitude) {
+            lng = map.getProjection().getVisibleRegion().farRight.longitude;
+        } else {
+            lng = landmark.getPosition().longitude;
+        }
+        if (landmark.getPosition().latitude <
+                map.getProjection().getVisibleRegion().nearLeft.latitude) {
+            lat = map.getProjection().getVisibleRegion().nearLeft.latitude;
+        } else if (landmark.getPosition().latitude >
+                map.getProjection().getVisibleRegion().farRight.latitude) {
+            lat = map.getProjection().getVisibleRegion().farRight.latitude;
+        } else {
+            lat = landmark.getPosition().latitude;
+        }
+        switch (getHeadingID(landmark)) {
+            case Heading.NORTH_ID:
+                pointAtScreenEdge = new LatLng(
+                        map.getProjection().getVisibleRegion().farRight.latitude,
+                        lng
+                );
+                break;
+            case Heading.EAST_ID:
+                pointAtScreenEdge = new LatLng(
+                        lat,
+                        map.getProjection().getVisibleRegion().farRight.longitude
+                );
+                break;
+            case Heading.SOUTH_ID:
+                pointAtScreenEdge = new LatLng(
+                        map.getProjection().getVisibleRegion().nearLeft.latitude,
+                        lng
+                );
+                break;
+            case Heading.WEST_ID:
+                pointAtScreenEdge = new LatLng(
+                        lat,
+                        map.getProjection().getVisibleRegion().nearLeft.longitude
+                );
+                break;
+        }
+        double distanceToScreen = SphericalUtil.computeDistanceBetween(landmark.getPosition(),
+                pointAtScreenEdge);
         // Calculate the length of the legs
-        double leg = getDistance(landmark) + Math.log((getDistance(landmark) + 20) / 12) * 10;
+        double leg = distanceToScreen + Math.log((distanceToScreen + 20) / 12) * 10;
+        // Calculate the length of half of the base
+        double halfBase = ((5 + getDistance(landmark) * 0.3) / leg) / 2;
+        // Calculate the distance from the landmark to the base (Pythagorean theorem)
+        double distanceToBase = Math.sqrt(Math.pow(leg, 2) - Math.pow(halfBase, 2));
+        // Calculate the point lying on the base line
+        LatLng pointOnBase = SphericalUtil.computeOffsetOrigin(landmark.getPosition(),
+                distanceToBase, getHeading(landmark));
 
-        // Calculate the length of the base
-        double base = (5 + getDistance(landmark) * 0.3) / leg;
+        // Calculate the shape points of the wedge
+        LatLng wedgePoint1 = SphericalUtil.computeOffset(pointOnBase, halfBase,
+                (getHeading(landmark) + 90) % 360);
+        LatLng wedgePoint2 = SphericalUtil.computeOffset(pointOnBase, halfBase,
+                (getHeading(landmark) - 90) % 360);
+
+        // Display the wedge
+        map.addPolygon(new PolygonOptions()
+                        .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
+                        .strokeColor(Color.WHITE)
+        );
     }
 
     /**
@@ -668,7 +717,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Get the heading from the map's center to the landmark
      *
      * @param landmark Landmark to get the heading to
-     * @return Heading to landmark
+     * @return Heading to the landmark
      */
     private double getHeading(Landmark landmark) {
         // Get the current center of the map
@@ -679,14 +728,36 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     }
 
     /**
+     * Get the heading ID from the map's center to the landmark
+     *
+     * @param landmark Landmark to get the heading to
+     * @return Heading ID to the landmark based on the <code>Heading</code> class IDs
+     */
+    private int getHeadingID(Landmark landmark) {
+        // Get the heading value
+        double heading = getHeading(landmark);
+
+        // Return the corresponding heading ID
+        if (heading <= Heading.SOUTH || heading > Heading.EAST) {
+            return Heading.SOUTH_ID;
+        } else if (heading <= Heading.WEST) {
+            return Heading.WEST_ID;
+        } else if (heading <= Heading.NORTH) {
+            return Heading.NORTH_ID;
+        } else {
+            return Heading.EAST_ID;
+        }
+    }
+
+    /**
      * Function to compute the shifted position of an off-screen landmark
      *
      * @param landmark Landmark to be shifted
      * @return Shifted position
      */
-    private LatLng getOffScreenPosition(Landmark landmark) {
-        // Get the landmark's heading
-        double heading = getHeading(landmark);
+    private LatLng computeOffScreenPosition(Landmark landmark) {
+        // Get the landmark's heading ID
+        int headingID = getHeadingID(landmark);
 
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
@@ -711,28 +782,33 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double lngLM = landmark.getPosition().longitude;
 
         // Start the computation
-        double shiftedLat;
-        double shiftedLng;
-        if (heading <= SOUTH || heading > EAST) {
-            // Compute the landmark's shifted position for the Southern heading
-            shiftedLat = boundingLatMin;
-            shiftedLng = lngMapCenter - (lngLM - lngMapCenter) / (latLM - latMapCenter) *
-                    (latMapCenter - boundingLatMin);
-        } else if (heading <= WEST) {
-            // Compute the landmark's shifted position for the Western heading
-            shiftedLat = latMapCenter - (latLM - latMapCenter) / (lngLM - lngMapCenter) *
-                    (lngMapCenter - boundingLngMin);
-            shiftedLng = boundingLngMin;
-        } else if (heading <= NORTH) {
-            // Compute the landmark's shifted position for the Northern heading
-            shiftedLat = boundingLatMax;
-            shiftedLng = lngMapCenter + (lngLM - lngMapCenter) / (latLM - latMapCenter) *
-                    (boundingLatMax - latMapCenter);
-        } else {
-            // Compute the landmark's shifted position for the Eastern heading
-            shiftedLat = latMapCenter + (latLM - latMapCenter) / (lngLM - lngMapCenter) *
-                    (boundingLngMax - lngMapCenter);
-            shiftedLng = boundingLngMax;
+        double shiftedLat = 0;
+        double shiftedLng = 0;
+        switch (headingID) {
+            case Heading.SOUTH_ID:
+                // Compute the landmark's shifted position for the Southern heading
+                shiftedLat = boundingLatMin;
+                shiftedLng = lngMapCenter - (lngLM - lngMapCenter) / (latLM - latMapCenter) *
+                        (latMapCenter - boundingLatMin);
+                break;
+            case Heading.WEST_ID:
+                // Compute the landmark's shifted position for the Western heading
+                shiftedLat = latMapCenter - (latLM - latMapCenter) / (lngLM - lngMapCenter) *
+                        (lngMapCenter - boundingLngMin);
+                shiftedLng = boundingLngMin;
+                break;
+            case Heading.NORTH_ID:
+                // Compute the landmark's shifted position for the Northern heading
+                shiftedLat = boundingLatMax;
+                shiftedLng = lngMapCenter + (lngLM - lngMapCenter) / (latLM - latMapCenter) *
+                        (boundingLatMax - latMapCenter);
+                break;
+            case Heading.EAST_ID:
+                // Compute the landmark's shifted position for the Eastern heading
+                shiftedLat = latMapCenter + (latLM - latMapCenter) / (lngLM - lngMapCenter) *
+                        (boundingLngMax - lngMapCenter);
+                shiftedLng = boundingLngMax;
+                break;
         }
 
         // Move the position to the allowed bounding box if necessary
@@ -870,14 +946,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         // Iterate through all landmarks
         for (Landmark l : unfilteredLandmarks) {
-            double heading = getHeading(l);
-            if (heading > NORTH && heading <= EAST && (east == null || (east != null &&
+            int headingID = getHeadingID(l);
+            if (headingID == Heading.EAST_ID && (east == null || (east != null &&
                     l.getReferenceRadius() > east.getReferenceRadius()))) {
                 east = l;
-            } else if (heading > EAST && heading <= SOUTH && (south == null || (south != null &&
+            } else if (headingID == Heading.SOUTH_ID && (south == null || (south != null &&
                     l.getReferenceRadius() > south.getReferenceRadius()))) {
                 south = l;
-            } else if (heading > SOUTH && heading <= WEST && (west == null || (west != null &&
+            } else if (headingID == Heading.WEST_ID && (west == null || (west != null &&
                     l.getReferenceRadius() > west.getReferenceRadius()))) {
                 west = l;
             } else if (north == null || (north != null &&
