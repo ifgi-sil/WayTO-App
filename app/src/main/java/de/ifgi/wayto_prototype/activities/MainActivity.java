@@ -586,7 +586,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * @param landmark Landmark this function refers to
      */
     private void addWedgeToMap(Landmark landmark) {
-        // Calculate the distance from the landmark to the edge of the screen
+        // Get a point at the closest edge of the screen
         LatLng pointAtScreenEdge = null;
         double lat, lng;
         if (landmark.getPosition().longitude <
@@ -633,14 +633,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 );
                 break;
         }
+        // Calculate the distance from the landmark to the edge of the screen (in pixels)
         double distanceToScreen = SphericalUtil.computeDistanceBetween(landmark.getPosition(),
-                pointAtScreenEdge);
-        // Calculate the length of the legs
+                pointAtScreenEdge) / mapScreenRatio;
+        // Calculate the length of the legs (in pixels)
         double leg = distanceToScreen + Math.log((distanceToScreen + 20) / 12) * 10;
-        // Calculate the length of half of the base
+        // Calculate the length of half of the base (in pixels)
         double halfBase = ((5 + getDistance(landmark) * 0.3) / leg) / 2;
-        // Calculate the distance from the landmark to the base (Pythagorean theorem)
-        double distanceToBase = Math.sqrt(Math.pow(leg, 2) - Math.pow(halfBase, 2));
+        // Calculate the distance from the landmark to the base (Pythagorean theorem) (in meters)
+        double distanceToBase =
+                Math.sqrt(Math.pow(leg, 2) - Math.pow(halfBase, 2)) * mapScreenRatio;
         // Calculate the point lying on the base line
         LatLng pointOnBase = SphericalUtil.computeOffsetOrigin(landmark.getPosition(),
                 distanceToBase, getHeading(landmark));
@@ -652,10 +654,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 (getHeading(landmark) - 90) % 360);
 
         // Display the wedge
-        map.addPolygon(new PolygonOptions()
-                        .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
-                        .strokeColor(Color.WHITE)
-        );
+        if (prefMapType == GoogleMap.MAP_TYPE_HYBRID ||
+                prefMapType == GoogleMap.MAP_TYPE_SATELLITE) {
+            map.addPolygon(new PolygonOptions()
+                            .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
+                            .strokeColor(Color.WHITE)
+            );
+        } else {
+            map.addPolygon(new PolygonOptions()
+                            .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
+                            .strokeColor(Color.BLACK)
+            );
+        }
     }
 
     /**

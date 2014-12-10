@@ -44,6 +44,7 @@ public abstract class LandmarkCollection {
                         new LatLng(51.95754, 7.61406)
                 })); TODO */
 
+        // --- Münster landmarks ---
         landmarkCollection.add(new PointLandmark("Innenstadt", 2500, R.drawable.landmark_shopping,
                 new LatLng(51.957173, 7.627344)));
         landmarkCollection.add(new PointLandmark("Schloss", 2750, R.drawable.landmark_castle,
@@ -70,6 +71,11 @@ public abstract class LandmarkCollection {
                 new LatLng(51.967284, 7.61386)));
         landmarkCollection.add(new PointLandmark("Picasso Museum", 500, R.drawable.landmark_museum,
                 new LatLng(51.959883, 7.62651)));
+        // --- End of Münster landmarks ---
+
+        // --- Mannheim landmarks ---
+        // TODO wait for landmarks from Stefan Münzer
+        // --- End of Mannheim landmarks ---
 
         return landmarkCollection;
     }
