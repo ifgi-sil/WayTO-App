@@ -26,12 +26,18 @@
         android:key="pref_category_key_method"
         android:title="@string/pref_header_method">
 
-        <ListPreference
+        <SwitchPreference
             android:key="pref_key_method"
             android:title="@string/pref_title_method"
+            android:defaultValue="true" />
+
+        <ListPreference
+            android:dependency="pref_key_method"
+            android:key="pref_key_method_type"
+            android:title="@string/pref_title_method"
             android:defaultValue="2"
-            android:entries="@array/pref_items_method"
-            android:entryValues="@array/pref_values_method"
+            android:entries="@array/pref_items_method_type"
+            android:entryValues="@array/pref_values_method_type"
             android:negativeButtonText="@null"
             android:positiveButtonText="@null" />
 
