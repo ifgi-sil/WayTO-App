@@ -440,7 +440,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             // Get the correct position where the landmark shall be displayed
             LatLng displayedPosition = landmark.getPosition();
             if (distance != MARKER_ON_SCREEN) {
-                displayedPosition = landmark.getOffScreenPosition();
+                if (prefMethod) {
+                    displayedPosition = landmark.getOffScreenPosition();
+                } else {
+                    return;
+                }
             }
 
             // Add the underlying circle to the map
