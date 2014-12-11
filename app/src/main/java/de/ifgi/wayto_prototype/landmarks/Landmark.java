@@ -43,6 +43,11 @@ public abstract class Landmark implements Comparable<Landmark> {
         this.categoryDrawable = categoryDrawable;
     }
 
+    @Override
+    public String toString() {
+        return title + ": " + getPosition().toString() + ", reference radius: " + referenceRadius;
+    }
+
     public String getTitle() {
         return title;
     }
