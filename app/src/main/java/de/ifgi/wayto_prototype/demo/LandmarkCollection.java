@@ -15,14 +15,36 @@ import de.ifgi.wayto_prototype.landmarks.PointLandmark;
  */
 public abstract class LandmarkCollection {
 
+    private static ArrayList<Landmark> landmarks;
+
     /**
      * Initialise the landmarks
      *
      * @return List of landmarks
      */
     public static ArrayList<Landmark> initLandmarks() {
-        ArrayList<Landmark> landmarkCollection = new ArrayList<Landmark>();
+        // Initialise the list of landmarks
+        landmarks = new ArrayList<Landmark>();
 
+        // Initialise the landmarks of the different cities
+        initMannheimLandmarks();
+        initMuensterLandmarks();
+
+        // Return the landmarks
+        return landmarks;
+    }
+
+    /**
+     * Initialise the landmarks of Mannheim
+     */
+    private static void initMannheimLandmarks() {
+        // TODO wait for landmarks from Stefan Münzer
+    }
+
+    /**
+     * Initialise the landmarks of Münster
+     */
+    private static void initMuensterLandmarks() {
         /*ALL_LANDMARKS.add(new RegionalLandmark("Aasee", 1500, R.drawable.landmark_water_body,
                 new LatLng[]{
                         new LatLng(51.95728, 7.61329), new LatLng(51.95688, 7.61368),
@@ -44,39 +66,31 @@ public abstract class LandmarkCollection {
                         new LatLng(51.95754, 7.61406)
                 })); TODO */
 
-        // --- Münster landmarks ---
-        landmarkCollection.add(new PointLandmark("Innenstadt", 2500, R.drawable.landmark_shopping,
+        landmarks.add(new PointLandmark("Innenstadt", 2500, R.drawable.landmark_shopping,
                 new LatLng(51.957173, 7.627344)));
-        landmarkCollection.add(new PointLandmark("Schloss", 2750, R.drawable.landmark_castle,
+        landmarks.add(new PointLandmark("Schloss", 2750, R.drawable.landmark_castle,
                 new LatLng(51.963622, 7.613187)));
-        landmarkCollection.add(new PointLandmark("UKM", 2250, R.drawable.landmark_hospital,
+        landmarks.add(new PointLandmark("UKM", 2250, R.drawable.landmark_hospital,
                 new LatLng(51.9603, 7.596262)));
-        landmarkCollection.add(new PointLandmark("Halle Münsterland", 1750, R.drawable.landmark_stadium,
+        landmarks.add(new PointLandmark("Halle Münsterland", 1750, R.drawable.landmark_stadium,
                 new LatLng(51.949066, 7.63982)));
-        landmarkCollection.add(new PointLandmark("Leonardo Campus", 1700, R.drawable.landmark_university,
+        landmarks.add(new PointLandmark("Leonardo Campus", 1700, R.drawable.landmark_university,
                 new LatLng(51.973388, 7.601604)));
-        landmarkCollection.add(new PointLandmark("York Center", 1650, R.drawable.landmark_shopping,
+        landmarks.add(new PointLandmark("York Center", 1650, R.drawable.landmark_shopping,
                 new LatLng(51.973418, 7.611111)));
-        landmarkCollection.add(new PointLandmark("Hbf", 1500, R.drawable.landmark_train_station,
+        landmarks.add(new PointLandmark("Hbf", 1500, R.drawable.landmark_train_station,
                 new LatLng(51.956667, 7.635)));
-        landmarkCollection.add(new PointLandmark("Aasee", 1500, R.drawable.landmark_water_body,
+        landmarks.add(new PointLandmark("Aasee", 1500, R.drawable.landmark_water_body,
                 new LatLng(51.949444, 7.603514)));
-        landmarkCollection.add(new PointLandmark("Dom", 1450, R.drawable.landmark_church,
+        landmarks.add(new PointLandmark("Dom", 1450, R.drawable.landmark_church,
                 new LatLng(51.962825, 7.625772)));
-        landmarkCollection.add(new PointLandmark("Preußenstadion", 1300, R.drawable.landmark_stadium,
+        landmarks.add(new PointLandmark("Preußenstadion", 1300, R.drawable.landmark_stadium,
                 new LatLng(51.92917, 7.624766)));
-        landmarkCollection.add(new PointLandmark("Buddenturm", 720, R.drawable.landmark_tower,
+        landmarks.add(new PointLandmark("Buddenturm", 720, R.drawable.landmark_tower,
                 new LatLng(51.96623, 7.623138)));
-        landmarkCollection.add(new PointLandmark("Aral Tankstelle", 550, R.drawable.landmark_gas_station,
+        landmarks.add(new PointLandmark("Aral Tankstelle", 550, R.drawable.landmark_gas_station,
                 new LatLng(51.967284, 7.61386)));
-        landmarkCollection.add(new PointLandmark("Picasso Museum", 500, R.drawable.landmark_museum,
+        landmarks.add(new PointLandmark("Picasso Museum", 500, R.drawable.landmark_museum,
                 new LatLng(51.959883, 7.62651)));
-        // --- End of Münster landmarks ---
-
-        // --- Mannheim landmarks ---
-        // TODO wait for landmarks from Stefan Münzer
-        // --- End of Mannheim landmarks ---
-
-        return landmarkCollection;
     }
 }
