@@ -67,6 +67,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private final LatLng TOWN_HALL = new LatLng(51.961563, 7.628187);
 
+    // --- Marker variables ---
+
     /**
      * Size of the markers
      */
@@ -83,7 +85,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Distance of the arrows to their corresponding markers in pixels
      */
     private final int DISTANCE_ARROW = (SIZE_MARKER + SIZE_ARROW) / 2 + 10;
-
     /**
      * ID for on-screen markers
      */
@@ -97,6 +98,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private final int MARKER_OFF_SCREEN_FAR = 2;
 
+    // --- End of marker variables ---
+
+    // --- Method variables ---
+
     /**
      * ID for the "normal arrow" method
      */
@@ -109,6 +114,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * ID for the "wedge" method
      */
     private final int METHOD_WEDGE = 2;
+
+    // --- End of method variables ---
+
+    // --- Preferences variables ---
 
     /**
      * Shared preferences instance
@@ -131,6 +140,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private int prefMethodType;
 
+    // --- End of preferences variables ---
+
+    // --- Landmark and map variables ---
+
     /**
      * List of landmarks
      */
@@ -151,6 +164,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Area which is covered by the markers and underlying circles
      */
     private ArrayList<LatLng> coveredArea;
+
+    // --- End of landmark and map variables ---
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -191,6 +206,42 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onCameraChange(CameraPosition cameraPosition) {
+        updateMap();
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        // Check if there is an open info window
+        if (lastOpened != null) {
+            // Close the info window
+            lastOpened.hideInfoWindow();
+
+            // Is the marker the same marker that was already open
+            if (lastOpened.equals(marker)) {
+                // Nullify the lastOpened object
+                lastOpened = null;
+                // Return so that the info window isn't opened again
+                return true;
+            }
+        }
+
+        // Open the info window for the marker
+        marker.showInfoWindow();
+        // Re-assign the last opened such that we can close it later
+        lastOpened = marker;
+
+        // Event was handled by our code do not launch default behaviour.
+        return true;
+    }
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        // Set the lasted clicked marker to null, so the info window will be shown again
+        lastOpened = null;
     }
 
     /**
@@ -459,7 +510,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                             .title(landmark.getTitle())
                             .visible(true)
             );
-            Log.d(TAG, getString(R.string.log_map_point_landmark_added));
+            Log.d(TAG, getString(R.string.log_map_point_landmark_added) +
+                    displayedPosition.toString());
 
             // Check if the landmark is an off-screen landmark and shall be displayed
             if (distance != MARKER_ON_SCREEN && prefMethod) {
@@ -487,7 +539,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             ArrayList<LatLng> shapePoints = new ArrayList<LatLng>();
             Collections.addAll(shapePoints, ((RegionalLandmark) landmark).getShapePoints());
             map.addPolygon(new PolygonOptions().addAll(shapePoints));
-            Log.d(TAG, getString(R.string.log_map_regional_landmark_added));
+            Log.d(TAG, getString(R.string.log_map_regional_landmark_added) +
+                    shapePoints.toString());
         }
     }
 
@@ -640,6 +693,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Calculate the distance from the landmark to the edge of the screen (in pixels)
         double distanceToScreen = SphericalUtil.computeDistanceBetween(landmark.getPosition(),
                 pointAtScreenEdge) / mapScreenRatio;
+
         // Calculate the length of the legs (in pixels)
         double leg = distanceToScreen + Math.log((distanceToScreen + 20) / 12) * 10;
         // Calculate the length of half of the base (in pixels)
@@ -670,6 +724,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                             .strokeColor(Color.BLACK)
             );
         }
+        Log.v(TAG, getString(R.string.log_map_wedge_added) + landmark.toString() + " " +
+                wedgePoint1.toString() + " " + wedgePoint2.toString());
     }
 
     /**
@@ -795,42 +851,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         Log.d(TAG, landmark.getTitle() + getString(R.string.log_landmark_shifted_location) +
                 shiftedPosition.toString());
         return shiftedPosition;
-    }
-
-    @Override
-    public void onCameraChange(CameraPosition cameraPosition) {
-        updateMap();
-    }
-
-    @Override
-    public boolean onMarkerClick(Marker marker) {
-        // Check if there is an open info window
-        if (lastOpened != null) {
-            // Close the info window
-            lastOpened.hideInfoWindow();
-
-            // Is the marker the same marker that was already open
-            if (lastOpened.equals(marker)) {
-                // Nullify the lastOpened object
-                lastOpened = null;
-                // Return so that the info window isn't opened again
-                return true;
-            }
-        }
-
-        // Open the info window for the marker
-        marker.showInfoWindow();
-        // Re-assign the last opened such that we can close it later
-        lastOpened = marker;
-
-        // Event was handled by our code do not launch default behaviour.
-        return true;
-    }
-
-    @Override
-    public void onMapClick(LatLng latLng) {
-        // Set the lasted clicked marker to null, so the info window will be shown again
-        lastOpened = null;
     }
 
     /**

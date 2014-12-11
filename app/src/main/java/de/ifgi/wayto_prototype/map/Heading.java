@@ -12,15 +12,15 @@ public abstract class Heading {
      */
     public static final double NORTH = 45;
     /**
-     * East direction ending angle
+     * East direction ending angle in degree
      */
     public static final double EAST = 135;
     /**
-     * South direction ending angle
+     * South direction ending angle in degree
      */
     public static final double SOUTH = -135;
     /**
-     * West direction ending angle
+     * West direction ending angle in degree
      */
     public static final double WEST = -45;
     /**
