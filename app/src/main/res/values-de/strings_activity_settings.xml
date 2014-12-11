@@ -23,13 +23,15 @@
     <!-- Settings for the method of displaying off-screen landmarks -->
     <string name="pref_header_method">Methode</string>
 
-    <string name="pref_title_method">Methode für "off-screen landmarks"</string>
-    <string-array name="pref_items_method">
+    <string name="pref_title_method">Zeige "off-screen landmarks"</string>
+
+    <string name="pref_title_method_type">Methode für "off-screen landmarks"</string>
+    <string-array name="pref_items_method_type">
         <item>Normale Pfeile</item>
         <item>Distance-based pointers</item>
         <item>Wedge</item>
     </string-array>
-    <string-array name="pref_values_method">
+    <string-array name="pref_values_method_type">
         <item>0</item>
         <item>1</item>
         <item>2</item>
