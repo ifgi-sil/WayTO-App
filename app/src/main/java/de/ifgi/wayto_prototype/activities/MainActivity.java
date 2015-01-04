@@ -697,7 +697,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Calculate the length of the legs (in pixels)
         double leg = distanceToScreen + Math.log((distanceToScreen + 20) / 12) * 10;
         // Calculate the length of half of the base (in pixels)
-        double halfBase = ((5 + getDistance(landmark) * 0.3) / leg) / 2;
+        double halfBase = ((5 + getDistance(landmark) * 0.3) / leg) / 2 * 100;
         // Calculate the distance from the landmark to the base (Pythagorean theorem) (in meters)
         double distanceToBase =
                 Math.sqrt(Math.pow(leg, 2) - Math.pow(halfBase, 2)) * mapScreenRatio;
