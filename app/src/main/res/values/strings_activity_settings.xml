@@ -27,7 +27,8 @@
 
     <string name="pref_title_method_type">Method for off-screen landmarks</string>
     <string-array name="pref_items_method_type">
-        <item>Normal arrows</item>
+        <item>Normal arrows (inside)</item>
+        <item>Normal arrows (outside)</item>
         <item>Distance-based pointers</item>
         <item>Wedge</item>
     </string-array>
@@ -35,6 +36,7 @@
         <item>0</item>
         <item>1</item>
         <item>2</item>
+        <item>3</item>
     </string-array>
 
 </resources>

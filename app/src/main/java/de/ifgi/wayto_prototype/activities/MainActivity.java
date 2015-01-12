@@ -30,17 +30,11 @@ import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolygonOptions;
-import com.google.android.gms.maps.model.TileOverlayOptions;
-import com.google.android.gms.maps.model.TileProvider;
-import com.google.android.gms.maps.model.UrlTileProvider;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
 
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Locale;
 
 import de.ifgi.wayto_prototype.R;
 import de.ifgi.wayto_prototype.demo.LandmarkCollection;
@@ -103,17 +97,21 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     // --- Method variables ---
 
     /**
-     * ID for the "normal arrow" method
+     * ID for the "normal arrow" method (inside, towards map center)
      */
-    private final int METHOD_ARROW = 0;
+    private final int METHOD_ARROW_INSIDE = 0;
+    /**
+     * ID for the "normal arrow" method (outside, away from map center)
+     */
+    private final int METHOD_ARROW_OUTSIDE = 1;
     /**
      * ID for the "distance-based pointer" method
      */
-    private final int METHOD_POINTER = 1;
+    private final int METHOD_POINTER = 2;
     /**
      * ID for the "wedge" method
      */
-    private final int METHOD_WEDGE = 2;
+    private final int METHOD_WEDGE = 3;
 
     // --- End of method variables ---
 
@@ -126,7 +124,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Preference value for the usage of Google Maps data
      */
-    private boolean prefMapGoogle;
+    //private boolean prefMapGoogle;
     /**
      * Preference value for the map type (e.g. normal, hybrid, or satellite)
      */
@@ -249,7 +247,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private void loadPreferences() {
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        prefMapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
+        //prefMapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
         prefMapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE, getString(R.string.map_type_normal)));
         prefMethod = preferences.getBoolean(SettingsActivity.PREF_KEY_METHOD, true);
@@ -263,10 +261,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private void checkPreferences() {
         boolean mapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
-        if (prefMapGoogle != mapGoogle) {
+        /*if (prefMapGoogle != mapGoogle) {
             prefMapGoogle = mapGoogle;
             updateMapType();
-        }
+        }*/
         int mapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE, getString(R.string.map_type_normal)));
         if (prefMapType != mapType) {
@@ -517,15 +515,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             if (distance != MARKER_ON_SCREEN && prefMethod) {
                 // Use preferred method for off-screen methods
                 switch (prefMethodType) {
-                    case METHOD_ARROW:
-                        // Use the "normal arrow" method
-                        addArrowToMap(landmark, distance);
+                    case METHOD_ARROW_INSIDE:
+                        // Use the "normal arrow" method (inside)
+                        addArrowToMap(landmark, distance, true);
+                        break;
+                    case METHOD_ARROW_OUTSIDE:
+                        // Use the "normal arrow" method (outside)
+                        addArrowToMap(landmark, distance, false);
                         break;
                     case METHOD_POINTER:
                         // Use the "distance-based pointer" method
-                        addArrowToMap(landmark, distance); // TODO remove when addPointer works
                         Toast.makeText(getApplicationContext(), "Work in progress",
-                                Toast.LENGTH_SHORT).show(); // TODO remove when addPointer works
+                                Toast.LENGTH_SHORT).show();
                         addPointerToMap(landmark);
                         break;
                     case METHOD_WEDGE:
@@ -535,7 +536,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 }
             }
         } else {
-            // TODO display regional landmark
             ArrayList<LatLng> shapePoints = new ArrayList<LatLng>();
             Collections.addAll(shapePoints, ((RegionalLandmark) landmark).getShapePoints());
             map.addPolygon(new PolygonOptions().addAll(shapePoints));
@@ -574,10 +574,15 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      *
      * @param landmark Landmark this function refers to
      * @param distance Indicates whether the off-screen landmark is near or far away
+     * @param inside   Indicates whether the arrow is shown "inside" or "outside" of the landmark
+     *                 in relation to the map center
      */
-    private void addArrowToMap(Landmark landmark, int distance) {
+    private void addArrowToMap(Landmark landmark, int distance, boolean inside) {
+        // Get the heading (from the map center to the landmark)
+        double heading = getHeading(landmark);
+
         // Compute the reverse heading (from the landmark to the map center)
-        double reverseHeading = getHeading(landmark);
+        double reverseHeading = heading;
         int rotation = (int) (reverseHeading + 360) % 360;
         if (reverseHeading > 0) {
             reverseHeading -= 180;
@@ -587,8 +592,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         // Get the correct drawable depending on the current map type
         BitmapDrawable bitmapDrawable;
-        if (prefMapGoogle && (prefMapType == GoogleMap.MAP_TYPE_HYBRID ||
-                prefMapType == GoogleMap.MAP_TYPE_SATELLITE)) {
+        if (prefMapType == GoogleMap.MAP_TYPE_HYBRID ||
+                prefMapType == GoogleMap.MAP_TYPE_SATELLITE) {
             if (distance == MARKER_OFF_SCREEN_NEAR) {
                 bitmapDrawable = (BitmapDrawable) getResources()
                         .getDrawable(R.drawable.arrow_near_white);
@@ -616,8 +621,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 matrix, false);
 
         // Compute the offset position of the arrow
-        LatLng arrowPositionNear = SphericalUtil.computeOffset(landmark.getOffScreenPosition(),
-                DISTANCE_ARROW * this.mapScreenRatio, reverseHeading);
+        LatLng arrowPositionNear;
+        if (inside) {
+            arrowPositionNear = SphericalUtil.computeOffset(landmark.getOffScreenPosition(),
+                    DISTANCE_ARROW * this.mapScreenRatio, reverseHeading);
+        } else {
+            arrowPositionNear = SphericalUtil.computeOffset(landmark.getOffScreenPosition(),
+                    DISTANCE_ARROW * this.mapScreenRatio, heading);
+        }
         // Display the arrow
         map.addMarker(new MarkerOptions()
                         .anchor(0.5f, 0.5f)
@@ -634,7 +645,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * @param landmark Landmark this function refers to
      */
     private void addPointerToMap(Landmark landmark) {
-        // TODO
+        // ...
     }
 
     /**
@@ -869,22 +880,22 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Set the map type respectively to the settings
      */
     private void setMapType() {
-        if (prefMapGoogle) {
-            switch (prefMapType) {
-                case GoogleMap.MAP_TYPE_NORMAL:
-                    // Normal
-                    map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
-                    break;
-                case GoogleMap.MAP_TYPE_HYBRID:
-                    // Hybrid
-                    map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
-                    break;
-                case GoogleMap.MAP_TYPE_SATELLITE:
-                    // Satellite
-                    map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
-                    break;
-            }
-        } else {
+        //if (prefMapGoogle) {
+        switch (prefMapType) {
+            case GoogleMap.MAP_TYPE_NORMAL:
+                // Normal
+                map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                break;
+            case GoogleMap.MAP_TYPE_HYBRID:
+                // Hybrid
+                map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                break;
+            case GoogleMap.MAP_TYPE_SATELLITE:
+                // Satellite
+                map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                break;
+        }
+        /*} else {
             map.setMapType(GoogleMap.MAP_TYPE_NONE);
 
             TileProvider tileProvider = new UrlTileProvider(256, 256) {
@@ -903,10 +914,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 }
             };
             map.addTileOverlay(new TileOverlayOptions().tileProvider(tileProvider));
-
-            // TODO OSMTileProvider osmTileProvider = new OSMTileProvider();
-            // TODO map.addTileOverlay(new TileOverlayOptions().tileProvider(osmTileProvider));
-        }
+        }*/
     }
 
     /**
