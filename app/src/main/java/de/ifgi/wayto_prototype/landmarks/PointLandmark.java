@@ -22,14 +22,15 @@ public class PointLandmark extends Landmark {
     /**
      * Constructor of the PointLandmark class
      *
-     * @param title            Title (or name)
-     * @param referenceRadius  Radius of reference
-     * @param categoryDrawable Category's drawable for the symbol on the  map
-     * @param position         Position as geolocated point
+     * @param title                    Title (or name)
+     * @param referenceRadius          Radius of reference
+     * @param categoryDrawableBlack    Category's drawable for the symbol on the map (black)
+     * @param categoryDrawableColoured Category's drawable for the symbol on the map (coloured)
+     * @param position                 Position as geolocated point
      */
-    public PointLandmark(String title, double referenceRadius, int categoryDrawable,
-                         LatLng position) {
-        super(title, referenceRadius, categoryDrawable);
+    public PointLandmark(String title, double referenceRadius, int categoryDrawableBlack,
+                         int categoryDrawableColoured, LatLng position) {
+        super(title, referenceRadius, categoryDrawableBlack, categoryDrawableColoured);
         this.position = position;
     }
 

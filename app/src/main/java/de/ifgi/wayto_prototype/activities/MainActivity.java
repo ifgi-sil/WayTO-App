@@ -130,6 +130,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private int prefMapType;
     /**
+     * Preference value for the landmark whether they shall be displayed in colours or black
+     */
+    private boolean prefColoured;
+    /**
      * Preference value indicating whether off-screen landmarks shall be displayed
      */
     private boolean prefMethod;
@@ -249,7 +253,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         //prefMapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
         prefMapType = Integer.valueOf(
-                preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE, getString(R.string.map_type_normal)));
+                preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
+                        getString(R.string.map_type_normal)));
+        prefColoured = preferences.getBoolean(SettingsActivity.PREF_KEY_COLOURED, false);
         prefMethod = preferences.getBoolean(SettingsActivity.PREF_KEY_METHOD, true);
         prefMethodType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
@@ -270,6 +276,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         if (prefMapType != mapType) {
             prefMapType = mapType;
             updateMapType();
+        }
+        boolean coloured = preferences.getBoolean(SettingsActivity.PREF_KEY_COLOURED, false);
+        if (prefColoured != coloured) {
+            prefColoured = coloured;
+            updateMap();
         }
         boolean method = preferences.getBoolean(SettingsActivity.PREF_KEY_METHOD, true);
         if (prefMethod != method) {
@@ -480,8 +491,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.getProjection().getVisibleRegion().latLngBounds
                         .contains(landmark.getPosition())) {
             // Modify the drawable to adjust the size of it
-            BitmapDrawable bitmapDrawable = (BitmapDrawable) getResources()
-                    .getDrawable(landmark.getCategoryDrawable());
+            BitmapDrawable bitmapDrawable;
+            if (prefColoured) {
+                bitmapDrawable = (BitmapDrawable) getResources()
+                        .getDrawable(landmark.getCategoryDrawableColoured());
+            } else {
+                bitmapDrawable = (BitmapDrawable) getResources()
+                        .getDrawable(landmark.getCategoryDrawableBlack());
+            }
             Bitmap bitmap = bitmapDrawable.getBitmap();
             Bitmap icon = Bitmap.createScaledBitmap(bitmap, SIZE_MARKER, SIZE_MARKER,
                     false);

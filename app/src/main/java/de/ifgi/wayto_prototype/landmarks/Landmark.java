@@ -26,21 +26,28 @@ public abstract class Landmark implements Comparable<Landmark> {
      */
     private LatLng offScreenPosition = null;
     /**
-     * Category's drawable for the symbol on the map
+     * Category's drawable for the symbol on the map (black)
      */
-    private int categoryDrawable;
+    private int categoryDrawableBlack;
+    /**
+     * Category's drawable for the symbol on the map (coloured)
+     */
+    private int categoryDrawableColoured;
 
     /**
      * (Super) Constructor of the Landmark class
      *
-     * @param title            Title (or name)
-     * @param referenceRadius  Radius of reference
-     * @param categoryDrawable Category's drawable for the symbol on the  map
+     * @param title                    Title (or name)
+     * @param referenceRadius          Radius of reference
+     * @param categoryDrawableBlack    Category's drawable for the symbol on the map (black)
+     * @param categoryDrawableColoured Category's drawable for the symbol on the map (coloured)
      */
-    public Landmark(String title, double referenceRadius, int categoryDrawable) {
+    public Landmark(String title, double referenceRadius, int categoryDrawableBlack,
+                    int categoryDrawableColoured) {
         this.title = title;
         this.referenceRadius = referenceRadius;
-        this.categoryDrawable = categoryDrawable;
+        this.categoryDrawableBlack = categoryDrawableBlack;
+        this.categoryDrawableColoured = categoryDrawableColoured;
     }
 
     @Override
@@ -72,8 +79,12 @@ public abstract class Landmark implements Comparable<Landmark> {
         this.offScreenPosition = offScreenPosition;
     }
 
-    public int getCategoryDrawable() {
-        return categoryDrawable;
+    public int getCategoryDrawableBlack() {
+        return categoryDrawableBlack;
+    }
+
+    public int getCategoryDrawableColoured() {
+        return categoryDrawableColoured;
     }
 
     public LatLng getPosition() {

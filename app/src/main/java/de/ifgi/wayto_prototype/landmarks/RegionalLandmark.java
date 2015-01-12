@@ -24,14 +24,15 @@ public class RegionalLandmark extends Landmark {
     /**
      * Constructor of the RegionalLandmark class
      *
-     * @param title            Title (or name)
-     * @param referenceRadius  Radius of reference
-     * @param categoryDrawable Category's drawable for the symbol on the  map
-     * @param shapePoints      Shape points that define the region of the landmark
+     * @param title                    Title (or name)
+     * @param referenceRadius          Radius of reference
+     * @param categoryDrawableBlack    Category's drawable for the symbol on the map (black)
+     * @param categoryDrawableColoured Category's drawable for the symbol on the map (coloured)
+     * @param shapePoints              Shape points that define the region of the landmark
      */
-    public RegionalLandmark(String title, double referenceRadius, int categoryDrawable,
-                            LatLng[] shapePoints) {
-        super(title, referenceRadius, categoryDrawable);
+    public RegionalLandmark(String title, double referenceRadius, int categoryDrawableBlack,
+                            int categoryDrawableColoured, LatLng[] shapePoints) {
+        super(title, referenceRadius, categoryDrawableBlack, categoryDrawableColoured);
         this.shapePoints = shapePoints;
     }
 
@@ -41,8 +42,8 @@ public class RegionalLandmark extends Landmark {
      * @return Point landmark with the centroid position of the regional landmark
      */
     public PointLandmark transformIntoPointLandmark() {
-        return new PointLandmark(getTitle(), getReferenceRadius(), getCategoryDrawable(),
-                getPosition());
+        return new PointLandmark(getTitle(), getReferenceRadius(), getCategoryDrawableBlack(),
+                getCategoryDrawableColoured(), getPosition());
     }
 
     public LatLng[] getShapePoints() {

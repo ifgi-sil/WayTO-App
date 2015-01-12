@@ -67,30 +67,30 @@ public abstract class LandmarkCollection {
                 })); TODO */
 
         landmarks.add(new PointLandmark("Innenstadt", 2500, R.drawable.landmark_shopping,
-                new LatLng(51.957173, 7.627344)));
+                R.drawable.landmark_coloured_shopping, new LatLng(51.957173, 7.627344)));
         landmarks.add(new PointLandmark("Schloss", 2750, R.drawable.landmark_castle,
-                new LatLng(51.963622, 7.613187)));
+                R.drawable.landmark_coloured_castle, new LatLng(51.963622, 7.613187)));
         landmarks.add(new PointLandmark("UKM", 2250, R.drawable.landmark_hospital,
-                new LatLng(51.9603, 7.596262)));
+                R.drawable.landmark_coloured_hospital, new LatLng(51.9603, 7.596262)));
         landmarks.add(new PointLandmark("Halle Münsterland", 1750, R.drawable.landmark_stadium,
-                new LatLng(51.949066, 7.63982)));
+                R.drawable.landmark_coloured_stadium, new LatLng(51.949066, 7.63982)));
         landmarks.add(new PointLandmark("Leonardo Campus", 1700, R.drawable.landmark_university,
-                new LatLng(51.973388, 7.601604)));
+                R.drawable.landmark_coloured_university, new LatLng(51.973388, 7.601604)));
         landmarks.add(new PointLandmark("York Center", 1650, R.drawable.landmark_shopping,
-                new LatLng(51.973418, 7.611111)));
+                R.drawable.landmark_coloured_shopping, new LatLng(51.973418, 7.611111)));
         landmarks.add(new PointLandmark("Hbf", 1500, R.drawable.landmark_train_station,
-                new LatLng(51.956667, 7.635)));
+                R.drawable.landmark_coloured_train_station, new LatLng(51.956667, 7.635)));
         landmarks.add(new PointLandmark("Aasee", 1500, R.drawable.landmark_water_body,
-                new LatLng(51.949444, 7.603514)));
+                R.drawable.landmark_coloured_water_body, new LatLng(51.949444, 7.603514)));
         landmarks.add(new PointLandmark("Dom", 1450, R.drawable.landmark_church,
-                new LatLng(51.962825, 7.625772)));
+                R.drawable.landmark_coloured_church, new LatLng(51.962825, 7.625772)));
         landmarks.add(new PointLandmark("Preußenstadion", 1300, R.drawable.landmark_stadium,
-                new LatLng(51.92917, 7.624766)));
+                R.drawable.landmark_coloured_stadium, new LatLng(51.92917, 7.624766)));
         landmarks.add(new PointLandmark("Buddenturm", 720, R.drawable.landmark_tower,
-                new LatLng(51.96623, 7.623138)));
+                R.drawable.landmark_coloured_tower, new LatLng(51.96623, 7.623138)));
         landmarks.add(new PointLandmark("Aral Tankstelle", 550, R.drawable.landmark_gas_station,
-                new LatLng(51.967284, 7.61386)));
+                R.drawable.landmark_coloured_gas_station, new LatLng(51.967284, 7.61386)));
         landmarks.add(new PointLandmark("Picasso Museum", 500, R.drawable.landmark_museum,
-                new LatLng(51.959883, 7.62651)));
+                R.drawable.landmark_coloured_museum, new LatLng(51.959883, 7.62651)));
     }
 }

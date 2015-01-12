@@ -23,6 +23,17 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:key="pref_category_key_landmarks"
+        android:title="@string/pref_header_landmarks">
+
+        <SwitchPreference
+            android:key="pref_key_coloured"
+            android:title="@string/pref_title_coloured"
+            android:defaultValue="false" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:key="pref_category_key_method"
         android:title="@string/pref_header_method">
 
