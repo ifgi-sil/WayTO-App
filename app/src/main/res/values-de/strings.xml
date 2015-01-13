@@ -5,4 +5,6 @@
     <string name="title_activity_about">Über</string>
     <string name="title_activity_help">Hilfe</string>
     <string name="title_activity_main">WayTO</string>
+    <string name="log_landmark_download_error">Landmarks konnten nicht heruntergeladen werden</string>
+    <string name="log_url_missing_error">Bitte gebe eine URL zum Download der Landmarks an</string>
 </resources>

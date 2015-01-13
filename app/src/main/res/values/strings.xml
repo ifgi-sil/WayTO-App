@@ -13,6 +13,8 @@
     <!-- Log (and Toast) messages -->
     <string name="log_map_cannot_create" translatable="false">Cannot create map</string>
     <string name="log_map_osm_error" translatable="false">Cannot load OSM tile overlay</string>
+    <string name="log_url_missing_error">Please enter a URL where the landmarks can be downloaded from</string>
+    <string name="log_landmark_download_error">Landmarks could not be downloaded</string>
     <string name="log_map_point_landmark_added" translatable="false">Landmark added as marker to the map at this position: </string>
     <string name="log_map_regional_landmark_added" translatable="false">Landmark added as polygon to the map at this position: </string>
     <string name="log_map_wedge_added" translatable="false">Wedge added to the map at this position: </string>

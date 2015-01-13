@@ -14,6 +14,8 @@ public class SettingsActivity extends Activity {
 
     public static final String PREF_KEY_MAP_GOOGLE = "pref_key_map_google";
     public static final String PREF_KEY_MAP_TYPE = "pref_key_map_type";
+    public static final String PREF_KEY_DOWNLOAD = "pref_key_download";
+    public static final String PREF_KEY_URL = "pref_key_url";
     public static final String PREF_KEY_COLOURED = "pref_key_coloured";
     public static final String PREF_KEY_METHOD = "pref_key_method";
     public static final String PREF_KEY_METHOD_TYPE = "pref_key_method_type";

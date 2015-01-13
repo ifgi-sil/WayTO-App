@@ -1,5 +1,7 @@
 package de.ifgi.wayto_prototype.activities;
 
+import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -9,6 +11,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
@@ -33,7 +36,20 @@ import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 
 import de.ifgi.wayto_prototype.R;
@@ -130,6 +146,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private int prefMapType;
     /**
+     * Preference value for the usage of online landmarks
+     */
+    private boolean prefDownload;
+    /**
+     * Preference value for the URL where the online landmarks are stored
+     */
+    private String prefURL;
+    /**
      * Preference value for the landmark whether they shall be displayed in colours or black
      */
     private boolean prefColoured;
@@ -147,9 +171,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     // --- Landmark and map variables ---
 
     /**
-     * List of landmarks
+     * List of pre-defined landmarks
      */
-    private final ArrayList<Landmark> ALL_LANDMARKS = LandmarkCollection.initLandmarks();
+    private final ArrayList<Landmark> PRE_DEFINED_LANDMARKS = LandmarkCollection.initLandmarks();
+    /**
+     * List of downloaded landmarks
+     */
+    private ArrayList<Landmark> landmarks = null;
     /**
      * Google Maps object
      */
@@ -255,6 +283,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         prefMapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
+        prefDownload = preferences.getBoolean(SettingsActivity.PREF_KEY_DOWNLOAD, false);
+        prefURL = preferences.getString(SettingsActivity.PREF_KEY_URL, null);
         prefColoured = preferences.getBoolean(SettingsActivity.PREF_KEY_COLOURED, false);
         prefMethod = preferences.getBoolean(SettingsActivity.PREF_KEY_METHOD, true);
         prefMethodType = Integer.valueOf(
@@ -266,16 +296,29 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
-        boolean mapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
-        /*if (prefMapGoogle != mapGoogle) {
+        /*boolean mapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
+        if (prefMapGoogle != mapGoogle) {
             prefMapGoogle = mapGoogle;
             updateMapType();
         }*/
         int mapType = Integer.valueOf(
-                preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE, getString(R.string.map_type_normal)));
+                preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
+                        getString(R.string.map_type_normal)));
         if (prefMapType != mapType) {
             prefMapType = mapType;
             updateMapType();
+        }
+        boolean download = preferences.getBoolean(SettingsActivity.PREF_KEY_DOWNLOAD, false);
+        if (prefDownload != download) {
+            prefDownload = download;
+            prefURL = preferences.getString(SettingsActivity.PREF_KEY_URL, null);
+            if (prefURL == null && prefDownload) {
+                Toast.makeText(getApplicationContext(), getString(R.string.log_url_missing_error),
+                        Toast.LENGTH_SHORT).show();
+                prefDownload = false;
+            } else {
+                updateMap();
+            }
         }
         boolean coloured = preferences.getBoolean(SettingsActivity.PREF_KEY_COLOURED, false);
         if (prefColoured != coloured) {
@@ -372,13 +415,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     /**
      * Display the landmarks on the map
+     *
+     * @param useOnlineLandmarks Indicates whether the pre-defined or downloaded landmarks shall be
+     *                           used
      */
-    private void displayLandmarks() {
+    private void displayLandmarks(boolean useOnlineLandmarks) {
         // Clear the covered area
         coveredArea = new ArrayList<LatLng>();
 
-        // Store all landmarks temporarily in another list
-        ArrayList<Landmark> landmarks = (ArrayList<Landmark>) ALL_LANDMARKS.clone();
+        if (landmarks == null || !useOnlineLandmarks) {
+            // Store all pre-defined landmarks temporarily in another list
+            landmarks = (ArrayList<Landmark>) PRE_DEFINED_LANDMARKS.clone();
+        }
 
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
@@ -455,6 +503,133 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     } else {
                         addLandmarkToMap(l, MARKER_OFF_SCREEN_FAR);
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * This is a class to get the JSON file asynchronously from the given URL.
+     *
+     * @author Marius Runde
+     */
+    private class GetJsonTask extends AsyncTask<String, Void, JSONArray> {
+
+        /**
+         * Class name for the logger
+         */
+        private final String LOG = GetJsonTask.class.toString();
+
+        /**
+         * Progress dialog to inform the user about the download
+         */
+        private ProgressDialog progressDialog = new ProgressDialog(
+                MainActivity.this);
+
+        /**
+         * Count the time needed for the data download
+         */
+        private int downloadTimer;
+
+        @Override
+        protected void onPreExecute() {
+            // Display progress dialog
+            progressDialog.setMessage("Downloading landmarks...");
+            progressDialog.show();
+            progressDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    // Cancel the download when the "Cancel" button has been
+                    // clicked
+                    GetJsonTask.this.cancel(true);
+                }
+            });
+
+            // Set timer to current time
+            downloadTimer = Calendar.getInstance().get(Calendar.SECOND);
+        }
+
+        @Override
+        protected JSONArray doInBackground(String... url) {
+            // Get the data from the URL
+            String output = "";
+            HttpClient httpclient = new DefaultHttpClient();
+            HttpResponse response;
+            try {
+                response = httpclient.execute(new HttpGet(url[0]));
+                StatusLine statusLine = response.getStatusLine();
+                if (statusLine.getStatusCode() == HttpStatus.SC_OK) {
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    response.getEntity().writeTo(out);
+                    out.close();
+                    output = out.toString();
+                } else {
+                    // Close the connection
+                    response.getEntity().getContent().close();
+                    throw new IOException(statusLine.getReasonPhrase());
+                }
+            } catch (Exception e) {
+                Log.e(LOG, "Could not get the data. This is the error message: " + e.getMessage());
+                return null;
+            }
+
+            // Convert the output to a JSONObject
+            try {
+                JSONArray result = new JSONArray(output);
+                return result;
+            } catch (JSONException e) {
+                Log.e(LOG, "Could not convert output to JSONObject. This is the error message: "
+                        + e.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(JSONArray result) {
+            // Dismiss progress dialog
+            progressDialog.dismiss();
+
+            // Write the time needed for the download into the log
+            downloadTimer = Calendar.getInstance().get(Calendar.SECOND)
+                    - downloadTimer;
+            Log.i(LOG, "Completed landmark download in " + downloadTimer + " seconds");
+
+            // Check if the download was successful
+            if (result == null) {
+                // Could not receive the JSON
+                Toast.makeText(MainActivity.this,
+                        getResources().getString(R.string.log_landmark_download_error),
+                        Toast.LENGTH_SHORT).show();
+                displayLandmarks(false);
+            } else {
+                // Transform the JSONObject into an ArrayList of landmarks
+                ArrayList<Landmark> downloadedLandmarks = new ArrayList<Landmark>();
+
+                try {
+                    for (int i = 0; i < result.length(); i++) {
+                        JSONObject o = result.getJSONObject(i);
+                        int drawableBlack = getResources().getIdentifier(
+                                o.getString("drawable_black"), "drawable", getPackageName());
+                        int drawableColoured = getResources().getIdentifier(
+                                o.getString("drawable_coloured"), "drawable", getPackageName());
+                        PointLandmark pl = new PointLandmark(
+                                o.getString("title"),
+                                o.getDouble("radius"),
+                                drawableBlack,
+                                drawableColoured,
+                                new LatLng(o.getDouble("lat"), o.getDouble("lng"))
+                        );
+                        downloadedLandmarks.add(pl);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                } finally {
+                    // Copy the list into the class-wide list
+                    landmarks = downloadedLandmarks;
+
+                    // Display the downloaded landmarks
+                    displayLandmarks(true);
                 }
             }
         }
@@ -890,7 +1065,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Compute the map/screen ratio
         computeMapScreenRatio();
         // Then redraw the landmarks
-        displayLandmarks();
+        if (prefDownload) {
+            GetJsonTask getJsonTask = new GetJsonTask();
+            getJsonTask.execute(prefURL);
+        } else {
+            displayLandmarks(prefDownload);
+        }
     }
 
     /**

@@ -5,8 +5,8 @@
     <string name="google_maps_key" templateMergeStrategy="preserve" translatable="false">AIzaSyD1us82u6TSQM5MDViCE1CvM5xgp2iE-wg</string>
 
     <!-- Map types -->
-    <string name="map_type_normal">1</string>
-    <string name="map_type_hybrid">4</string>
-    <string name="map_type_satellite">2</string>
+    <string name="map_type_normal" translatable="false">1</string>
+    <string name="map_type_hybrid" translatable="false">4</string>
+    <string name="map_type_satellite" translatable="false">2</string>
 
 </resources>

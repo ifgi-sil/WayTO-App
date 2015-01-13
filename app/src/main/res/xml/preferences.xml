@@ -14,7 +14,7 @@
         <ListPreference
             android:key="pref_key_map_type"
             android:title="@string/pref_title_map_type"
-            android:defaultValue="@string/map_type_satellite"
+            android:defaultValue="@string/map_type_normal"
             android:entries="@array/pref_items_map_type"
             android:entryValues="@array/pref_values_map_type"
             android:negativeButtonText="@null"
@@ -25,6 +25,17 @@
     <PreferenceCategory
         android:key="pref_category_key_landmarks"
         android:title="@string/pref_header_landmarks">
+
+        <SwitchPreference
+            android:key="pref_key_download"
+            android:title="@string/pref_title_download"
+            android:defaultValue="false" />
+
+        <EditTextPreference
+            android:dependency="pref_key_download"
+            android:key="pref_key_url"
+            android:title="@string/pref_title_url"
+            android:defaultValue="" />
 
         <SwitchPreference
             android:key="pref_key_coloured"
@@ -46,7 +57,7 @@
             android:dependency="pref_key_method"
             android:key="pref_key_method_type"
             android:title="@string/pref_title_method"
-            android:defaultValue="2"
+            android:defaultValue="1"
             android:entries="@array/pref_items_method_type"
             android:entryValues="@array/pref_values_method_type"
             android:negativeButtonText="@null"

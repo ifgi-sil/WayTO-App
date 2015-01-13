@@ -23,6 +23,10 @@
     <!-- Settings for the landmarks -->
     <string name="pref_header_landmarks">Landmarks</string>
 
+    <string name="pref_title_download">Verwende online Landmarks</string>
+
+    <string name="pref_title_url">URL für online landmarks</string>
+
     <string name="pref_title_coloured">Verwende farbige Landmarks</string>
 
     <!-- Settings for the method of displaying off-screen landmarks -->
