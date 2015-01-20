@@ -5,12 +5,11 @@
         android:key="pref_category_key_map"
         android:title="@string/pref_header_map">
 
-        <!--<SwitchPreference
-            android:key="pref_key_map_google"
-            android:title="@string/pref_title_map_google"
-            android:defaultValue="true" />-->
+        <SwitchPreference
+            android:key="pref_key_map_follow"
+            android:title="@string/pref_title_map_follow"
+            android:defaultValue="false" />
 
-        <!--android:dependency="pref_key_map_google"-->
         <ListPreference
             android:key="pref_key_map_type"
             android:title="@string/pref_title_map_type"

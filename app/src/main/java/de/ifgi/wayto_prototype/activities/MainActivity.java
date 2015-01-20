@@ -11,6 +11,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -138,9 +139,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private SharedPreferences preferences;
     /**
-     * Preference value for the usage of Google Maps data
+     * Preference value for following the user's position
      */
-    //private boolean prefMapGoogle;
+    private boolean prefMapFollow;
     /**
      * Preference value for the map type (e.g. normal, hybrid, or satellite)
      */
@@ -149,6 +150,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Preference value for the usage of online landmarks
      */
     private boolean prefDownload;
+    /**
+     * Indicates whether the online landmarks already have been downloaded
+     */
+    private boolean notDownloadedYet = true;
     /**
      * Preference value for the URL where the online landmarks are stored
      */
@@ -279,7 +284,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private void loadPreferences() {
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        //prefMapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
+        prefMapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
         prefMapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -296,11 +301,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
-        /*boolean mapGoogle = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_GOOGLE, true);
-        if (prefMapGoogle != mapGoogle) {
-            prefMapGoogle = mapGoogle;
-            updateMapType();
-        }*/
+        boolean mapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
+        if (prefMapFollow != mapFollow) {
+            prefMapFollow = mapFollow;
+            updateMapFollowing();
+        }
         int mapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -317,6 +322,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                         Toast.LENGTH_SHORT).show();
                 prefDownload = false;
             } else {
+                notDownloadedYet = true;
                 updateMap();
             }
         }
@@ -423,9 +429,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Clear the covered area
         coveredArea = new ArrayList<LatLng>();
 
+        // Copy the list of landmarks
+        ArrayList<Landmark> onScreenLandmarks = new ArrayList<Landmark>();
         if (landmarks == null || !useOnlineLandmarks) {
             // Store all pre-defined landmarks temporarily in another list
-            landmarks = (ArrayList<Landmark>) PRE_DEFINED_LANDMARKS.clone();
+            onScreenLandmarks = (ArrayList<Landmark>) PRE_DEFINED_LANDMARKS.clone();
+        } else {
+            onScreenLandmarks = (ArrayList<Landmark>) landmarks.clone();
         }
 
         // Get the bounding box of the displayed map and the map center
@@ -450,7 +460,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         // Get all on-screen candidate landmarks and display the regional ones
         ArrayList<Landmark> onScreenCandidates = new ArrayList<Landmark>();
-        for (Landmark l : landmarks) {
+        for (Landmark l : onScreenLandmarks) {
             if (markerBounds.contains(l.getPosition())) {
                 if (((Object) l).getClass() == PointLandmark.class) {
                     // Check if the landmark's position is already covered on the map
@@ -468,7 +478,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         for (Landmark l : onScreenCandidates) {
             // Remove this landmark from the list of all landmarks
-            landmarks.remove(l);
+            onScreenLandmarks.remove(l);
         }
 
         // Display the on-screen candidate point landmarks, so that they lay above the regional ones
@@ -478,7 +488,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         // Get all off-screen candidate landmarks
         ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
-        for (Landmark l : landmarks) {
+        for (Landmark l : onScreenLandmarks) {
             if (getDistance(l) <= l.getReferenceRadius()) {
                 // Map center is covered by reference radius of landmark
                 offScreenCandidates.add(l);
@@ -629,6 +639,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     landmarks = downloadedLandmarks;
 
                     // Display the downloaded landmarks
+                    notDownloadedYet = false;
                     displayLandmarks(true);
                 }
             }
@@ -1065,7 +1076,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Compute the map/screen ratio
         computeMapScreenRatio();
         // Then redraw the landmarks
-        if (prefDownload) {
+        if (prefDownload && notDownloadedYet) {
             GetJsonTask getJsonTask = new GetJsonTask();
             getJsonTask.execute(prefURL);
         } else {
@@ -1092,26 +1103,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
                 break;
         }
-        /*} else {
-            map.setMapType(GoogleMap.MAP_TYPE_NONE);
-
-            TileProvider tileProvider = new UrlTileProvider(256, 256) {
-                @Override
-                public synchronized URL getTileUrl(int x, int y, int zoom) {
-                    // The moon tile coordinate system is reversed.  This is not normal.
-                    int reversedY = (1 << zoom) - y - 1;
-                    String s = String.format(Locale.US, "http://mw1.google.com/mw-planetary/lunar/lunarmaps_v1/clem_bw/%d/%d/%d.jpg", zoom, x, reversedY);
-                    URL url = null;
-                    try {
-                        url = new URL(s);
-                    } catch (MalformedURLException e) {
-                        throw new AssertionError(e);
-                    }
-                    return url;
-                }
-            };
-            map.addTileOverlay(new TileOverlayOptions().tileProvider(tileProvider));
-        }*/
     }
 
     /**
@@ -1122,6 +1113,22 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         setMapType();
         // Update the displayed overlays
         updateMap();
+    }
+
+    /**
+     * Called when the map following preference has been changed
+     */
+    private void updateMapFollowing() {
+        if (prefMapFollow) {
+            map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 14);
+                }
+            });
+        } else {
+            map.setOnMyLocationChangeListener(null);
+        }
     }
 
     /**

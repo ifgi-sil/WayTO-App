@@ -6,7 +6,7 @@
     <!-- Settings for the map -->
     <string name="pref_header_map">Karte</string>
 
-    <string name="pref_title_map_google">Google Maps</string>
+    <string name="pref_title_map_follow">Folge Nutzer</string>
 
     <string name="pref_title_map_type">Kartentyp</string>
     <string-array name="pref_items_map_type">
