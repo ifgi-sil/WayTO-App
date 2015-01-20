@@ -38,6 +38,8 @@
     <string-array name="pref_items_method_type">
         <item>Normal arrows (inside)</item>
         <item>Normal arrows (outside)</item>
+        <item>Not-distance-based arrows (inside)</item>
+        <item>Not-distance-based arrows (outside)</item>
         <item>Distance-based pointers</item>
         <item>Wedge</item>
     </string-array>
@@ -46,6 +48,8 @@
         <item>1</item>
         <item>2</item>
         <item>3</item>
+        <item>4</item>
+        <item>5</item>
     </string-array>
 
 </resources>

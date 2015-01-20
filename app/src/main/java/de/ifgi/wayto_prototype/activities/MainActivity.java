@@ -122,13 +122,21 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private final int METHOD_ARROW_OUTSIDE = 1;
     /**
+     * ID for the "not-distance-based arrow" method (inside, towards map center)
+     */
+    private final int METHOD_ARROW_NOT_DISTANCE_INSIDE = 2;
+    /**
+     * ID for the "not-distance-based arrow" method (outside, away from map center)
+     */
+    private final int METHOD_ARROW_NOT_DISTANCE_OUTSIDE = 3;
+    /**
      * ID for the "distance-based pointer" method
      */
-    private final int METHOD_POINTER = 2;
+    private final int METHOD_POINTER = 4;
     /**
      * ID for the "wedge" method
      */
-    private final int METHOD_WEDGE = 3;
+    private final int METHOD_WEDGE = 5;
 
     // --- End of method variables ---
 
@@ -725,6 +733,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     case METHOD_ARROW_OUTSIDE:
                         // Use the "normal arrow" method (outside)
                         addArrowToMap(landmark, distance, false);
+                        break;
+                    case METHOD_ARROW_NOT_DISTANCE_INSIDE:
+                        // Use the "not-distance-based arrow" method (inside)
+                        addArrowToMap(landmark, MARKER_OFF_SCREEN_NEAR, true);
+                        break;
+                    case METHOD_ARROW_NOT_DISTANCE_OUTSIDE:
+                        // Use the "not-distance-based arrow" method (outside)
+                        addArrowToMap(landmark, MARKER_OFF_SCREEN_NEAR, false);
                         break;
                     case METHOD_POINTER:
                         // Use the "distance-based pointer" method
