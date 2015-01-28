@@ -628,9 +628,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     for (int i = 0; i < result.length(); i++) {
                         JSONObject o = result.getJSONObject(i);
                         int drawableBlack = getResources().getIdentifier(
-                                o.getString("drawable_black"), "drawable", getPackageName());
+                                "landmark_" + o.getString("category"), "drawable",
+                                getPackageName());
                         int drawableColoured = getResources().getIdentifier(
-                                o.getString("drawable_coloured"), "drawable", getPackageName());
+                                "landmark_coloured_" + o.getString("category"), "drawable",
+                                getPackageName());
                         PointLandmark pl = new PointLandmark(
                                 o.getString("title"),
                                 o.getDouble("radius"),
