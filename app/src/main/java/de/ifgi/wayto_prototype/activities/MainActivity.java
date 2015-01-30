@@ -74,6 +74,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private final String TAG = MainActivity.class.toString();
 
     /**
+     * Logger
+     */
+    private String logger = "";
+
+    /**
      * Coordinates of the town hall as starting location
      */
     private final LatLng TOWN_HALL = new LatLng(51.961563, 7.628187);
@@ -253,6 +258,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
+        logger += "Map moved to position: " + cameraPosition.target.toString() +
+                " at zoom level: " + cameraPosition.zoom + "\n";
         updateMap();
     }
 
@@ -272,6 +279,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             }
         }
 
+        logger += "Clicked on marker: " + marker.getTitle() + "\n";
         // Open the info window for the marker
         marker.showInfoWindow();
         // Re-assign the last opened such that we can close it later
