@@ -692,26 +692,34 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private void addLandmarkToMap(Landmark landmark, int distance) {
         if (((Object) landmark).getClass() == PointLandmark.class ||
-                map.getProjection().getVisibleRegion().latLngBounds
-                        .contains(landmark.getPosition())) {
+                map.getCameraPosition().zoom < 14) {
+            // --- Add PointLandmark ---
+            PointLandmark tempLandmark = null;
+            if (((Object) landmark).getClass() == RegionalLandmark.class) {
+                tempLandmark =
+                        ((RegionalLandmark) landmark).transformIntoPointLandmark();
+            } else {
+                tempLandmark = (PointLandmark) landmark;
+            }
+
             // Modify the drawable to adjust the size of it
             BitmapDrawable bitmapDrawable;
             if (prefColoured) {
                 bitmapDrawable = (BitmapDrawable) getResources()
-                        .getDrawable(landmark.getCategoryDrawableColoured());
+                        .getDrawable(tempLandmark.getCategoryDrawableColoured());
             } else {
                 bitmapDrawable = (BitmapDrawable) getResources()
-                        .getDrawable(landmark.getCategoryDrawableBlack());
+                        .getDrawable(tempLandmark.getCategoryDrawableBlack());
             }
             Bitmap bitmap = bitmapDrawable.getBitmap();
             Bitmap icon = Bitmap.createScaledBitmap(bitmap, SIZE_MARKER, SIZE_MARKER,
                     false);
 
             // Get the correct position where the landmark shall be displayed
-            LatLng displayedPosition = landmark.getPosition();
+            LatLng displayedPosition = tempLandmark.getPosition();
             if (distance != MARKER_ON_SCREEN) {
                 if (prefMethod) {
-                    displayedPosition = landmark.getOffScreenPosition();
+                    displayedPosition = tempLandmark.getOffScreenPosition();
                 } else {
                     return;
                 }
@@ -726,7 +734,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                             .draggable(false)
                             .icon(BitmapDescriptorFactory.fromBitmap(icon))
                             .position(displayedPosition)
-                            .title(landmark.getTitle())
+                            .title(tempLandmark.getTitle())
                             .visible(true)
             );
             Log.d(TAG, getString(R.string.log_map_point_landmark_added) +
@@ -738,36 +746,41 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 switch (prefMethodType) {
                     case METHOD_ARROW_INSIDE:
                         // Use the "normal arrow" method (inside)
-                        addArrowToMap(landmark, distance, true);
+                        addArrowToMap(tempLandmark, distance, true);
                         break;
                     case METHOD_ARROW_OUTSIDE:
                         // Use the "normal arrow" method (outside)
-                        addArrowToMap(landmark, distance, false);
+                        addArrowToMap(tempLandmark, distance, false);
                         break;
                     case METHOD_ARROW_NOT_DISTANCE_INSIDE:
                         // Use the "not-distance-based arrow" method (inside)
-                        addArrowToMap(landmark, MARKER_OFF_SCREEN_NEAR, true);
+                        addArrowToMap(tempLandmark, MARKER_OFF_SCREEN_NEAR, true);
                         break;
                     case METHOD_ARROW_NOT_DISTANCE_OUTSIDE:
                         // Use the "not-distance-based arrow" method (outside)
-                        addArrowToMap(landmark, MARKER_OFF_SCREEN_NEAR, false);
+                        addArrowToMap(tempLandmark, MARKER_OFF_SCREEN_NEAR, false);
                         break;
                     case METHOD_POINTER:
                         // Use the "distance-based pointer" method
                         Toast.makeText(getApplicationContext(), "Work in progress",
                                 Toast.LENGTH_SHORT).show();
-                        addPointerToMap(landmark);
+                        addPointerToMap(tempLandmark);
                         break;
                     case METHOD_WEDGE:
                         // Use the "wedge" method
-                        addWedgeToMap(landmark);
+                        addWedgeToMap(tempLandmark);
                         break;
                 }
             }
         } else {
-            ArrayList<LatLng> shapePoints = new ArrayList<LatLng>();
+            // --- Add RegionalLandmark ---
+
+            ArrayList<LatLng> shapePoints = new ArrayList<>();
             Collections.addAll(shapePoints, ((RegionalLandmark) landmark).getShapePoints());
-            map.addPolygon(new PolygonOptions().addAll(shapePoints));
+            map.addPolygon(new PolygonOptions()
+                            .addAll(shapePoints)
+                            .visible(true)
+            );
             Log.d(TAG, getString(R.string.log_map_regional_landmark_added) +
                     shapePoints.toString());
         }
