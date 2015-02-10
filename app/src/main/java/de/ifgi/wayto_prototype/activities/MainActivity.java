@@ -1,5 +1,6 @@
 package de.ifgi.wayto_prototype.activities;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -52,6 +53,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 
 import de.ifgi.wayto_prototype.R;
 import de.ifgi.wayto_prototype.demo.LandmarkCollection;
@@ -251,6 +253,19 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 Intent intentSettings = new Intent(getApplicationContext(), SettingsActivity.class);
                 startActivity(intentSettings);
                 return true;
+            case R.id.menu_item_export:
+                // Export the log as email
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType("message/rfc822");
+                intent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.app_name));
+                intent.putExtra(Intent.EXTRA_TEXT, logger);
+                Intent mailer = Intent.createChooser(intent, null);
+                startActivity(mailer);
+                // Reset the log
+                logger = "";
+                Toast.makeText(getApplicationContext(), getString(R.string.log_reset),
+                        Toast.LENGTH_SHORT).show();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -259,7 +274,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         logger += "Map moved to position: " + cameraPosition.target.toString() +
-                " at zoom level: " + cameraPosition.zoom + "\n";
+                " at zoom level: " + cameraPosition.zoom + " at time: " + getCurrentTime() + "\n";
         updateMap();
     }
 
@@ -279,7 +294,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             }
         }
 
-        logger += "Clicked on marker: " + marker.getTitle() + "\n";
+        logger += "Clicked on marker: " + marker.getTitle() + " at zoom level: " +
+                map.getCameraPosition().zoom + " at time: " + getCurrentTime() +
+                "\n";
         // Open the info window for the marker
         marker.showInfoWindow();
         // Re-assign the last opened such that we can close it later
@@ -291,8 +308,20 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     @Override
     public void onMapClick(LatLng latLng) {
+        logger += "Clicked on map at time: " + getCurrentTime() + "\n";
         // Set the lasted clicked marker to null, so the info window will be shown again
         lastOpened = null;
+    }
+
+    /**
+     * Function to get the current time for the logger
+     *
+     * @return Current time as plain text
+     */
+    private String getCurrentTime() {
+        Calendar calendar = Calendar.getInstance();
+        Date currentTime = calendar.getTime();
+        return currentTime.toString();
     }
 
     /**

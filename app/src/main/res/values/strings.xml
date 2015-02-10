@@ -9,6 +9,7 @@
 
     <!-- Menu items -->
     <string name="menu_item_settings">Settings</string>
+    <string name="menu_item_export">Export Log</string>
 
     <!-- Log (and Toast) messages -->
     <string name="log_map_cannot_create" translatable="false">Cannot create map</string>
@@ -19,5 +20,6 @@
     <string name="log_map_regional_landmark_added" translatable="false">Landmark added as polygon to the map at this position: </string>
     <string name="log_map_wedge_added" translatable="false">Wedge added to the map at this position: </string>
     <string name="log_landmark_shifted_location" translatable="false">: Location shifted to </string>
+    <string name="log_reset" translatable="false">Log has been reset</string>
 
 </resources>

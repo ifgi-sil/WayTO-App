@@ -2,9 +2,11 @@
 <resources>
     <string name="app_name">WayTO</string>
     <string name="menu_item_settings">Einstellungen</string>
+    <string name="menu_item_export">Exportiere Log</string>
     <string name="title_activity_about">Über</string>
     <string name="title_activity_help">Hilfe</string>
     <string name="title_activity_main">WayTO</string>
     <string name="log_landmark_download_error">Landmarks konnten nicht heruntergeladen werden</string>
     <string name="log_url_missing_error">Bitte gebe eine URL zum Download der Landmarks an</string>
+    <string name="log_reset" translatable="false">Der Log wurde zurückgesetzt</string>
 </resources>
