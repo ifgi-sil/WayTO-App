@@ -522,7 +522,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     l.setOffScreenPosition(computeOffScreenPosition(l));
                 }
                 // Check if the landmark's position is already covered on the map
-                if (isAreaFree(l.getPosition())) {
+                if (isAreaFree(l.getOffScreenPosition())) {
                     coveredArea.add(l.getPosition());
                     if (i <= filteredCandidates.size() / 2) {
                         addLandmarkToMap(l, MARKER_OFF_SCREEN_NEAR);
