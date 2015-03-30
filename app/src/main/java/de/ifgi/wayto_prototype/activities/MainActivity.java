@@ -684,8 +684,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 ArrayList<Landmark> downloadedLandmarks = new ArrayList<Landmark>();
 
                 try {
-                    for (int i = 0; i < result.length(); i++) {
-                        JSONObject o = result.getJSONObject(i);
+                    // Get the point landmarks
+                    JSONArray pointLandmarks = result.getJSONObject(0)
+                            .getJSONArray("point_landmarks");
+                    for (int i = 0; i < pointLandmarks.length(); i++) {
+                        JSONObject o = pointLandmarks.getJSONObject(i);
                         int drawableBlack = getResources().getIdentifier(
                                 "landmark_" + o.getString("category"), "drawable",
                                 getPackageName());
@@ -700,6 +703,38 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                                 new LatLng(o.getDouble("lat"), o.getDouble("lng"))
                         );
                         downloadedLandmarks.add(pl);
+                    }
+
+                    // Get the regional landmarks
+                    JSONArray regionalLandmarks = result.getJSONObject(1)
+                            .getJSONArray("regional_landmarks");
+                    for (int i = 0; i < regionalLandmarks.length(); i++) {
+                        JSONObject o = regionalLandmarks.getJSONObject(i);
+                        int drawableBlack = getResources().getIdentifier(
+                                "landmark_" + o.getString("category"), "drawable",
+                                getPackageName());
+                        int drawableColoured = getResources().getIdentifier(
+                                "landmark_coloured_" + o.getString("category"), "drawable",
+                                getPackageName());
+                        JSONArray points = o.getJSONArray("points");
+                        LatLng[] shapePoints = new LatLng[points.length()];
+                        for (int j = 0; j < points.length(); j++) {
+                            shapePoints[j] = new LatLng(points.getJSONObject(j).getDouble("lat"),
+                                    points.getJSONObject(j).getDouble("lng"));
+                        }
+                        LatLng[] shapePointsArray = shapePoints.clone();
+                        LatLng centroid = new LatLng(o.getDouble("centroid_lat"),
+                                o.getDouble("centroid_lng"));
+                        RegionalLandmark rl = new RegionalLandmark(
+                                o.getString("title"),
+                                o.getDouble("radius"),
+                                drawableBlack,
+                                drawableColoured,
+                                shapePointsArray,
+                                centroid
+                        );
+
+                        downloadedLandmarks.add(rl);
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
