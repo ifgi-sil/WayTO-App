@@ -19,6 +19,7 @@ public class SettingsActivity extends Activity {
     public static final String PREF_KEY_COLOURED = "pref_key_coloured";
     public static final String PREF_KEY_METHOD = "pref_key_method";
     public static final String PREF_KEY_METHOD_TYPE = "pref_key_method_type";
+    public static final String PREF_KEY_METHOD_REGIONAL = "pref_key_method_regional";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

@@ -1,6 +1,7 @@
 package de.ifgi.wayto_prototype.landmarks;
 
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 
 /**
  * Landmark that can be located at a specific region
@@ -61,5 +62,18 @@ public class RegionalLandmark extends Landmark {
 
     public LatLng getPosition() {
         return centroid;
+    }
+
+    public LatLngBounds getBounds() {
+        double south = 91, west = 181, north = -91, east = -181;
+        for (LatLng point : shapePoints) {
+            if (point.latitude < south) south = point.latitude;
+            if (point.latitude > north) north = point.latitude;
+            if (point.longitude < west) west = point.longitude;
+            if (point.longitude > east) east = point.longitude;
+        }
+        LatLng southwest = new LatLng(south, west), northeast = new LatLng(north, east);
+        LatLngBounds bounds = new LatLngBounds(southwest, northeast);
+        return bounds;
     }
 }

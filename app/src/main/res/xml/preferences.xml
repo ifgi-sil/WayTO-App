@@ -62,6 +62,15 @@
             android:negativeButtonText="@null"
             android:positiveButtonText="@null" />
 
+        <ListPreference
+            android:key="pref_key_method_regional"
+            android:title="@string/pref_title_method_regional"
+            android:defaultValue="1"
+            android:entries="@array/pref_items_method_regional"
+            android:entryValues="@array/pref_values_method_regional"
+            android:negativeButtonText="@null"
+            android:positiveButtonText="@null" />
+
     </PreferenceCategory>
 
 </PreferenceScreen>

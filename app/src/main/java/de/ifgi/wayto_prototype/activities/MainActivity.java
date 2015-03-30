@@ -1,6 +1,5 @@
 package de.ifgi.wayto_prototype.activities;
 
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -120,6 +119,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     // --- Method variables ---
 
+    // --- Off-screen landmarks ---
     /**
      * ID for the "normal arrow" method (inside, towards map center)
      */
@@ -144,6 +144,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * ID for the "wedge" method
      */
     private final int METHOD_WEDGE = 5;
+
+    // --- Regional landmarks ---
+    /**
+     * ID for the "bounding box" method
+     */
+    private final int METHOD_BBOX = 0;
+    /**
+     * ID for the "polygon" method
+     */
+    private final int METHOD_POLYGON = 1;
 
     // --- End of method variables ---
 
@@ -185,6 +195,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Preference value for the method for displaying off-screen landmarks (e.g. wedge)
      */
     private int prefMethodType;
+    /**
+     * Preference value for the method for displaying regional landmarks
+     */
+    private int prefMethodRegional;
 
     // --- End of preferences variables ---
 
@@ -339,6 +353,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         prefMethod = preferences.getBoolean(SettingsActivity.PREF_KEY_METHOD, true);
         prefMethodType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
+        prefMethodRegional = Integer.valueOf(
+                preferences.getString(SettingsActivity.PREF_KEY_METHOD_REGIONAL, "1"));
     }
 
     /**
@@ -385,6 +401,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
         if (prefMethodType != methodType) {
             prefMethodType = methodType;
+            updateMap();
+        }
+        int methodRegional = Integer.valueOf(
+                preferences.getString(SettingsActivity.PREF_KEY_METHOD_REGIONAL, "1"));
+        if (prefMethodRegional != methodRegional) {
+            prefMethodRegional = methodRegional;
             updateMap();
         }
     }
@@ -804,14 +826,32 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         } else {
             // --- Add RegionalLandmark ---
 
-            ArrayList<LatLng> shapePoints = new ArrayList<>();
-            Collections.addAll(shapePoints, ((RegionalLandmark) landmark).getShapePoints());
-            map.addPolygon(new PolygonOptions()
-                            .addAll(shapePoints)
-                            .visible(true)
-            );
-            Log.d(TAG, getString(R.string.log_map_regional_landmark_added) +
-                    shapePoints.toString());
+            // Use preference method for regional landmarks
+            switch (prefMethodRegional) {
+                case METHOD_BBOX:
+                    LatLngBounds bounds = ((RegionalLandmark) landmark).getBounds();
+                    map.addPolygon(new PolygonOptions()
+                                    .add(bounds.southwest)
+                                    .add(new LatLng(bounds.southwest.latitude,
+                                            bounds.northeast.longitude))
+                                    .add(bounds.northeast)
+                                    .add(new LatLng(bounds.northeast.latitude,
+                                            bounds.southwest.longitude))
+                                    .visible(true)
+                    );
+                    Log.d(TAG, getString(R.string.log_map_bbox_added) + landmark.getPosition());
+                    break;
+                case METHOD_POLYGON:
+                    ArrayList<LatLng> shapePoints = new ArrayList<>();
+                    Collections.addAll(shapePoints, ((RegionalLandmark) landmark).getShapePoints());
+                    map.addPolygon(new PolygonOptions()
+                                    .addAll(shapePoints)
+                                    .visible(true)
+                    );
+                    Log.d(TAG, getString(R.string.log_map_regional_landmark_added) +
+                            shapePoints.toString());
+                    break;
+            }
         }
     }
 

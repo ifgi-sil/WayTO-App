@@ -52,4 +52,14 @@
         <item>5</item>
     </string-array>
 
+    <string name="pref_title_method_regional">Methode für regionale Landmarks</string>
+    <string-array name="pref_items_method_regional">
+        <item>Bounding Box</item>
+        <item>Polygon</item>
+    </string-array>
+    <string-array name="pref_values_method_regional">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
+
 </resources>
