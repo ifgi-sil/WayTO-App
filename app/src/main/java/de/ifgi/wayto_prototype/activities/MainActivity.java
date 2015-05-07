@@ -61,6 +61,9 @@ import de.ifgi.wayto_prototype.landmarks.PointLandmark;
 import de.ifgi.wayto_prototype.landmarks.RegionalLandmark;
 import de.ifgi.wayto_prototype.map.Heading;
 
+/* Angela */
+
+
 /**
  * Main activity that displays the map
  *
@@ -80,24 +83,27 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private String logger = "";
 
     /**
-     * Coordinates of the town hall as starting location
+     * Coordinates of the starting Point
+     * eg. town hall LatLng(51.961563, 7.628187)
+     * e.g. Geiststr_Peterstr LatLng(51.947197, 7.622430)
      */
-    private final LatLng TOWN_HALL = new LatLng(51.961563, 7.628187);
+    private final LatLng StartingPoint = new LatLng(51.947197, 7.622430);
+
 
     // --- Marker variables ---
 
     /**
      * Size of the markers
      */
-    private final int SIZE_MARKER = 30;
+    private final int SIZE_MARKER = 50;
     /**
      * Size of the circles underlying the markers
      */
-    private final int SIZE_CIRCLE = 25;
+    private final int SIZE_CIRCLE = 45;
     /**
      * Size of the arrows of the off-screen landmarks
      */
-    private final int SIZE_ARROW = 30;
+    private final int SIZE_ARROW = 50;
     /**
      * Distance of the arrows to their corresponding markers in pixels
      */
@@ -434,14 +440,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 // Enable MyLocation but disable the corresponding button
                 map.setMyLocationEnabled(true);
                 map.getUiSettings().setMyLocationButtonEnabled(false);
-                // Animate to town hall
-                animateTo(TOWN_HALL, 14);
+                // Animate to starting point
+                animateTo(StartingPoint, 14);
                 // Set OnCameraChangeListener
                 map.setOnCameraChangeListener(this);
                 // Set OnMarkerClickListener
                 map.setOnMarkerClickListener(this);
                 // Set OnMapClickListener
                 map.setOnMapClickListener(this);
+                // Angela set rotation false
+                map.getUiSettings().setRotateGesturesEnabled(false);
             } else {
                 // Cannot create map
                 String message = getString(R.string.log_map_cannot_create);

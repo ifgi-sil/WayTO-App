@@ -34,7 +34,7 @@
             android:dependency="pref_key_download"
             android:key="pref_key_url"
             android:title="@string/pref_title_url"
-            android:defaultValue="" />
+            android:defaultValue="http//ifgi.uni-muenster.de/~schwering/lm.json" />
 
         <SwitchPreference
             android:key="pref_key_coloured"
