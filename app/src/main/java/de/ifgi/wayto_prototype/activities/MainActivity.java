@@ -368,9 +368,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
-        boolean mapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
-        if (prefMapFollow != mapFollow) {
-            prefMapFollow = mapFollow;
+        if (prefMapFollow) {
             updateMapFollowing();
         }
         int mapType = Integer.valueOf(
@@ -1275,6 +1273,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 @Override
                 public void onMyLocationChange(Location location) {
                     animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 14);
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
                 }
             });
         } else {
