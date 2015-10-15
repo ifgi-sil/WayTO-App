@@ -13,6 +13,7 @@ import de.ifgi.wayto_prototype.fragments.SettingsFragment;
 public class SettingsActivity extends Activity {
 
     public static final String PREF_KEY_MAP_FOLLOW = "pref_key_map_follow";
+    public static final String PREF_KEY_MAP_COMPASS = "pref_key_map_compass";
     public static final String PREF_KEY_MAP_TYPE = "pref_key_map_type";
     public static final String PREF_KEY_DOWNLOAD = "pref_key_download";
     public static final String PREF_KEY_URL = "pref_key_url";

@@ -174,6 +174,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private boolean prefMapFollow;
     /**
+     * Preference value for enabling the compass
+     */
+    private boolean prefMapCompass;
+    /**
      * Preference value for the map type (e.g. normal, hybrid, or satellite)
      */
     private int prefMapType;
@@ -350,6 +354,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void loadPreferences() {
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         prefMapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
+        prefMapCompass = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_COMPASS, false);
         prefMapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -371,6 +376,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         if (prefMapFollow) {
             updateMapFollowing();
         }
+        if (prefMapCompass) {
+            map.getUiSettings().setCompassEnabled(true);
+        } else {
+            map.getUiSettings().setCompassEnabled(false);
+        }
+        Log.d(TAG, "Compass enagled: " + map.getUiSettings().isCompassEnabled());
+
         int mapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -437,7 +449,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.getUiSettings().setZoomControlsEnabled(false);
                 // Enable MyLocation but disable the corresponding button
                 map.setMyLocationEnabled(true);
-                map.getUiSettings().setMyLocationButtonEnabled(false);
+                map.getUiSettings().setMyLocationButtonEnabled(true);
                 // Animate to starting point
                 animateTo(StartingPoint, 14);
                 // Set OnCameraChangeListener
@@ -447,7 +459,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 // Set OnMapClickListener
                 map.setOnMapClickListener(this);
                 // Angela set rotation false
-                map.getUiSettings().setRotateGesturesEnabled(false);
+                map.getUiSettings().setRotateGesturesEnabled(true);
             } else {
                 // Cannot create map
                 String message = getString(R.string.log_map_cannot_create);
