@@ -61,13 +61,11 @@ import de.ifgi.wayto_prototype.landmarks.PointLandmark;
 import de.ifgi.wayto_prototype.landmarks.RegionalLandmark;
 import de.ifgi.wayto_prototype.map.Heading;
 
-/* Angela */
-
 
 /**
  * Main activity that displays the map
  *
- * @author Marius Runde
+ * @author Marius Runde, Heinrich Löwen
  */
 public class MainActivity extends FragmentActivity implements GoogleMap.OnCameraChangeListener,
         GoogleMap.OnMarkerClickListener, GoogleMap.OnMapClickListener {
@@ -215,6 +213,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     // --- Landmark and map variables ---
 
     /**
+     * Vertical map ratio
+     */
+    private final double VERTICAL_MAP_RATIO = 16.44;
+    /**
+     * Horizontal map ratio
+     */
+    private final double HORIZONTAL_MAP_RATIO = 10;
+    /**
      * List of pre-defined landmarks
      */
     private final ArrayList<Landmark> PRE_DEFINED_LANDMARKS = LandmarkCollection.initLandmarks();
@@ -308,7 +314,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         logger += "Map moved to position: " + cameraPosition.target.toString() +
-                " at zoom level: " + cameraPosition.zoom + " at time: " + getCurrentTime() + "\n";
+                " at bearing: " + cameraPosition.bearing +
+                " at zoom level: " + cameraPosition.zoom +
+                " at time: " + getCurrentTime() + "\n";
         updateMap();
     }
 
@@ -1194,12 +1202,12 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         double spanLng = bounds.northeast.longitude - bounds.southwest.longitude;
 
         // Get the min/max latitude values
-        double boundingLatMin = bounds.southwest.latitude + spanLat / 15;
-        double boundingLatMax = bounds.northeast.latitude - spanLat / 15;
+        double boundingLatMin = bounds.southwest.latitude + spanLat / VERTICAL_MAP_RATIO;
+        double boundingLatMax = bounds.northeast.latitude - spanLat / VERTICAL_MAP_RATIO;
 
         // Get the min/max longitude values
-        double boundingLngMin = bounds.southwest.longitude + spanLng / 10;
-        double boundingLngMax = bounds.northeast.longitude - spanLng / 10;
+        double boundingLngMin = bounds.southwest.longitude + spanLng / HORIZONTAL_MAP_RATIO;
+        double boundingLngMax = bounds.northeast.longitude - spanLng / HORIZONTAL_MAP_RATIO;
 
         // Simplify the names of the variables
         double latMapCenter = mapCenter.latitude;
@@ -1254,6 +1262,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      * Called when the overlays of the map have to be updated
      */
     private void updateMap() {
+/*
         // First clear the map
         map.clear();
         // Compute the map/screen ratio
@@ -1264,6 +1273,47 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             getJsonTask.execute(prefURL);
         } else {
             displayLandmarks(prefDownload);
+        }
+        */
+        // Compute the map/screen ratio
+        computeMapScreenRatio();
+        // Then redraw the landmarks
+        if (prefDownload && notDownloadedYet) {
+            GetJsonTask getJsonTask = new GetJsonTask();
+            getJsonTask.execute(prefURL);
+        } else {
+            recalculateLandmarks(prefDownload);
+        }
+    }
+
+    /**
+     * Recalculate how and where the landmarks are displayed.
+     * Case 1: previous = landmark on-screen > now = landmark on-screen > do nothing
+     * Case 2: previous = landmark off-screen > now = landmark on-screen > display landmark on screen
+     * Case 3: previous = landmark on-screen > now = landmark off-screen > make landmark a off-screen candidate
+     * Case 4: previous = landmark off-screen > now = landmark off-screen > make landmark a off-screen candidate
+     * @param useOnlineLandmarks
+     */
+    private void recalculateLandmarks(boolean useOnlineLandmarks) {
+        // Copy the list of landmarks
+        ArrayList<Landmark> allLandmarks = new ArrayList<Landmark>();
+        if (landmarks == null || !useOnlineLandmarks) {
+            // Store all pre-defined landmarks temporarily in another list
+            allLandmarks = (ArrayList<Landmark>) PRE_DEFINED_LANDMARKS.clone();
+        } else {
+            allLandmarks = (ArrayList<Landmark>) landmarks.clone();
+        }
+
+        // Get the bounding box of the displayed map and the map center
+        LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
+
+        for (Landmark l : allLandmarks) {
+            // Test whether landmark is on- or off-screen at new camera position
+            if (bounds.contains(l.getPosition())) {
+
+            } else {
+
+            }
         }
     }
 
