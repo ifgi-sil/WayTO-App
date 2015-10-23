@@ -268,6 +268,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         return true;
     }
 
+    /**
+     * Funktion to handle the options menu
+     *
+     * @param item Gets the menu item that was selected by the user
+     * @return boolean
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -295,6 +301,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
+    /**
+     * Function that is called when the camera is changed.
+     * @param cameraPosition
+     */
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         logger += "Map moved to position: " + cameraPosition.target.toString() +
@@ -472,7 +482,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void computeMapScreenRatio() {
         // Get the map bounds
         VisibleRegion vr = map.getProjection().getVisibleRegion();
+        // upperLeft and upperRight
         double mapWidth = SphericalUtil.computeDistanceBetween(vr.farLeft, vr.farRight);
+        // upperLeft and lowerLeft
         double mapHeight = SphericalUtil.computeDistanceBetween(vr.farLeft, vr.nearLeft);
 
         // Get the screen bounds
@@ -526,6 +538,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
         LatLng mapCenter = new LatLng(bounds.getCenter().latitude, bounds.getCenter().longitude);
+/*
+Currently not used, because only relevant for on screen landmarks that lie in the border where off-screen landmarks are displayed.
+New solution: use bounds of the map and only display a landmark as off-screen landmark, when is not visible on map any more.
+
+        // Make up a inner frame, where the off-screen landmarks shall be displayed.
+        // The center of the off-screen landmarks will be at a tenth of the display/map width
 
         // Calculate the latitude and longitude spans
         double spanLat = bounds.northeast.latitude - bounds.southwest.latitude;
@@ -542,11 +560,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Get the bounding box where the markers shall be displayed
         LatLngBounds markerBounds = new LatLngBounds(new LatLng(boundingLatMin, boundingLngMin),
                 new LatLng(boundingLatMax, boundingLngMax));
+*/
 
         // Get all on-screen candidate landmarks and display the regional ones
         ArrayList<Landmark> onScreenCandidates = new ArrayList<Landmark>();
         for (Landmark l : onScreenLandmarks) {
-            if (markerBounds.contains(l.getPosition())) {
+            if (bounds.contains(l.getPosition())) {
+            //if (markerBounds.contains(l.getPosition())) {
                 if (((Object) l).getClass() == PointLandmark.class) {
                     // Check if the landmark's position is already covered on the map
                     if (isAreaFree(l.getPosition())) {
@@ -598,6 +618,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     } else {
                         addLandmarkToMap(l, MARKER_OFF_SCREEN_FAR);
                     }
+                } else {
+                    //TODO implemente funktion to shift landmark, if area is already covered
                 }
             }
         }
@@ -1172,8 +1194,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double spanLng = bounds.northeast.longitude - bounds.southwest.longitude;
 
         // Get the min/max latitude values
-        double boundingLatMin = bounds.southwest.latitude + spanLat / 10;
-        double boundingLatMax = bounds.northeast.latitude - spanLat / 10;
+        double boundingLatMin = bounds.southwest.latitude + spanLat / 15;
+        double boundingLatMax = bounds.northeast.latitude - spanLat / 15;
 
         // Get the min/max longitude values
         double boundingLngMin = bounds.southwest.longitude + spanLng / 10;
