@@ -250,6 +250,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * current camera position
      */
     private CameraPosition currentCameraPosition;
+    /**
+     * previous camera position
+     */
+    private CameraPosition previousCameraPosition;
 
     /**
      *
@@ -331,9 +335,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 " at time: " + getCurrentTime() + "\n";
         Log.i(TAG, "Camera changed to: " + cameraPosition.target.toString() + "at bearing: " + cameraPosition.bearing);
         if (cameraChangedSignificantly(cameraPosition)) {
+            if (currentCameraPosition != null) {
+                previousCameraPosition = currentCameraPosition;
+            }
+            currentCameraPosition = cameraPosition;
             updateMap();
         }
-        currentCameraPosition = cameraPosition;
     }
 
     private boolean cameraChangedSignificantly(CameraPosition cameraPosition) {
@@ -1402,7 +1409,11 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                 case R.integer.landmark_status_on_screen:
                     if (bounds.contains(l.getPosition())) {
                         // Case 3: on-screen > on-screen
-                        // do nothing
+                        // check if zoomed
+                        if (currentCameraPosition.zoom != previousCameraPosition.zoom) {
+                            if (l.getLandmarkMarkerCircle() != null) l.getLandmarkMarkerCircle().remove();
+                            addCircleToMap(l, l.getPosition());
+                        }
                     } else {
                         // Case 4: on-screen > off-screen
                         // remove on-screen landmark and add to off-screen candidate
