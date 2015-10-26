@@ -27,4 +27,18 @@
         <item>WL bank|bank|51.949313|7.615925|500000</item>
     </string-array>
 
+    <integer name="landmark_status_empty">
+        0
+    </integer>
+
+    <integer name="landmark_status_on_screen">
+        1
+    </integer>
+
+    <integer name="landmark_status_off_screen">
+        2
+    </integer>
+
+
+
 </resources>

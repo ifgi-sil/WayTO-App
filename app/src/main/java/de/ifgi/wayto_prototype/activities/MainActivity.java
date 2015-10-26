@@ -28,11 +28,13 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
@@ -243,7 +245,17 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Area which is covered by the markers and underlying circles
      */
-    private ArrayList<LatLng> coveredArea;
+    private ArrayList<LatLng> coveredArea = new ArrayList<LatLng>();
+    /**
+     * current camera position
+     */
+    private CameraPosition currentCameraPosition;
+
+    /**
+     *
+     */
+    private final Double POSITION_CHANGED_THRESHOLD = 0.00001;
+    private final Double BEARING_CHANGED_THRESHOLD = 1.0;
 
     // --- End of landmark and map variables ---
 
@@ -317,7 +329,30 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 " at bearing: " + cameraPosition.bearing +
                 " at zoom level: " + cameraPosition.zoom +
                 " at time: " + getCurrentTime() + "\n";
-        updateMap();
+        Log.i(TAG, "Camera changed to: " + cameraPosition.target.toString() + "at bearing: " + cameraPosition.bearing);
+        if (cameraChangedSignificantly(cameraPosition)) {
+            updateMap();
+        }
+        currentCameraPosition = cameraPosition;
+    }
+
+    private boolean cameraChangedSignificantly(CameraPosition cameraPosition) {
+        if (currentCameraPosition == null) {
+            return true;
+        } else {
+            if (Math.abs(currentCameraPosition.target.latitude - cameraPosition.target.latitude) > POSITION_CHANGED_THRESHOLD) {
+                return true;
+            }
+            else if (Math.abs(currentCameraPosition.target.longitude - cameraPosition.target.longitude) > POSITION_CHANGED_THRESHOLD) {
+                return true;
+            }
+            else if (Math.abs(currentCameraPosition.bearing - cameraPosition.bearing) > BEARING_CHANGED_THRESHOLD) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
     }
 
     @Override
@@ -860,10 +895,10 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             }
 
             // Add the underlying circle to the map
-            addCircleToMap(displayedPosition);
+            addCircleToMap(landmark, displayedPosition);
 
             // Add the landmark as a marker to the map
-            map.addMarker(new MarkerOptions()
+            Marker marker = map.addMarker(new MarkerOptions()
                             .anchor(0.5f, 0.5f)
                             .draggable(false)
                             .icon(BitmapDescriptorFactory.fromBitmap(icon))
@@ -871,6 +906,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                             .title(tempLandmark.getTitle())
                             .visible(true)
             );
+            landmark.setLandmarkMarker(marker);
             Log.d(TAG, getString(R.string.log_map_point_landmark_added) +
                     displayedPosition.toString());
 
@@ -922,6 +958,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                                             bounds.southwest.longitude))
                                     .visible(true)
                     );
+                    // TODO add to landmark class
                     Log.d(TAG, getString(R.string.log_map_bbox_added) + landmark.getPosition());
                     break;
                 case METHOD_POLYGON:
@@ -931,6 +968,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                                     .addAll(shapePoints)
                                     .visible(true)
                     );
+                    // TODO add to landmark class
                     Log.d(TAG, getString(R.string.log_map_regional_landmark_added) +
                             shapePoints.toString());
                     break;
@@ -939,11 +977,30 @@ New solution: use bounds of the map and only display a landmark as off-screen la
     }
 
     /**
+     * Removes the landmark from the map.
+     *
+     * @param l Specified Landmark
+     */
+    private void removeLandmarkFromMap(Landmark l) {
+        // Remove Landmark
+        if (l.getLandmarkMarker() != null) l.getLandmarkMarker().remove();
+        if (l.getLandmarkMarkerCircle() != null) l.getLandmarkMarkerCircle().remove();
+        if (l.getLandmarkMarkerArrow() != null) l.getLandmarkMarkerArrow().remove();
+        if (l.getLandmarkMarkerPolygon() != null) l.getLandmarkMarkerPolygon().remove();
+        if (l.getLandmarkMarkerWedge() != null) l.getLandmarkMarkerWedge().remove();
+
+        // Remove covered Area entry
+        if (coveredArea.contains(l.getPosition())) {
+            coveredArea.remove(coveredArea.indexOf(l.getPosition()));
+        }
+    }
+
+    /**
      * Function to draw a circle below the markers
      *
      * @param position Position of the circle
      */
-    private void addCircleToMap(LatLng position) {
+    private void addCircleToMap(Landmark l, LatLng position) {
         // Compute the radius
         int radius = (int) (SIZE_CIRCLE * this.mapScreenRatio);
 
@@ -956,11 +1013,12 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         c.drawCircle(d / 2, d / 2, d / 2, p);
 
         // mapView is the GoogleMap
-        map.addGroundOverlay(new GroundOverlayOptions()
+        GroundOverlay groundOverlay = map.addGroundOverlay(new GroundOverlayOptions()
                         .image(BitmapDescriptorFactory.fromBitmap(bitmap))
                         .position(position, radius * 2, radius * 2)
                         .transparency(0.4f)
         );
+        l.setLandmarkMarkerCircle(groundOverlay);
     }
 
     /**
@@ -1024,13 +1082,14 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     DISTANCE_ARROW * this.mapScreenRatio, heading);
         }
         // Display the arrow
-        map.addMarker(new MarkerOptions()
+        Marker marker = map.addMarker(new MarkerOptions()
                         .anchor(0.5f, 0.5f)
                         .draggable(false)
                         .icon(BitmapDescriptorFactory.fromBitmap(rotatedArrow))
                         .position(arrowPositionNear)
                         .visible(true)
         );
+        landmark.setLandmarkMarkerArrow(marker);
     }
 
     /**
@@ -1039,7 +1098,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      * @param landmark Landmark this function refers to
      */
     private void addPointerToMap(Landmark landmark) {
-        // ...
+        // TODO implement
     }
 
     /**
@@ -1119,15 +1178,17 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         // Display the wedge
         if (prefMapType == GoogleMap.MAP_TYPE_HYBRID ||
                 prefMapType == GoogleMap.MAP_TYPE_SATELLITE) {
-            map.addPolygon(new PolygonOptions()
+            Polygon polygon = map.addPolygon(new PolygonOptions()
                             .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
                             .strokeColor(Color.WHITE)
             );
+            landmark.setLandmarkMarkerPolygon(polygon);
         } else {
-            map.addPolygon(new PolygonOptions()
+            Polygon polygon = map.addPolygon(new PolygonOptions()
                             .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
                             .strokeColor(Color.BLACK)
             );
+            landmark.setLandmarkMarkerPolygon(polygon);
         }
         Log.v(TAG, getString(R.string.log_map_wedge_added) + landmark.toString() + " " +
                 wedgePoint1.toString() + " " + wedgePoint2.toString());
@@ -1288,10 +1349,12 @@ New solution: use bounds of the map and only display a landmark as off-screen la
 
     /**
      * Recalculate how and where the landmarks are displayed.
-     * Case 1: previous = landmark on-screen > now = landmark on-screen > do nothing
-     * Case 2: previous = landmark off-screen > now = landmark on-screen > display landmark on screen
-     * Case 3: previous = landmark on-screen > now = landmark off-screen > make landmark a off-screen candidate
-     * Case 4: previous = landmark off-screen > now = landmark off-screen > make landmark a off-screen candidate
+     * Case 1: previous = landmark empty > now = landmark on-screen > display
+     * Case 2: previous = landmark empty > now = landmark off-screen > display
+     * Case 3: previous = landmark on-screen > now = landmark on-screen > do nothing
+     * Case 4: previous = landmark off-screen > now = landmark on-screen > display landmark on screen
+     * Case 5: previous = landmark on-screen > now = landmark off-screen > make landmark a off-screen candidate
+     * Case 6: previous = landmark off-screen > now = landmark off-screen > make landmark a off-screen candidate
      * @param useOnlineLandmarks
      */
     private void recalculateLandmarks(boolean useOnlineLandmarks) {
@@ -1306,13 +1369,105 @@ New solution: use bounds of the map and only display a landmark as off-screen la
 
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
+        ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
 
         for (Landmark l : allLandmarks) {
-            // Test whether landmark is on- or off-screen at new camera position
-            if (bounds.contains(l.getPosition())) {
+            // Check whether landmark is on- or off-screen at new camera position
+            switch (l.getCategoryStatusLandmark()) {
+                case R.integer.landmark_status_empty:
+                    if (bounds.contains(l.getPosition())) {
+                        // Case 1: empty > on-screen
+                        // display on-screen landmarks
+                        if (((Object) l).getClass() == PointLandmark.class) {
+                            // Check if the landmark's position is already covered on the map
+                            if (isAreaFree(l.getPosition())) {
+                                coveredArea.add(l.getPosition());
+                                // Add point landmark map
+                                l.setCategoryStatusLandmark(R.integer.landmark_status_on_screen);
+                                addLandmarkToMap(l, MARKER_ON_SCREEN);
+                            }
+                        } else {
+                            // Display this regional landmark
+                            addLandmarkToMap(l, MARKER_ON_SCREEN);
+                        }
+                    } else {
+                        // Case 2: empty > off-screen
+                        // add to off-screen candidate
+                        if (getDistance(l) <= l.getReferenceRadius()) {
+                            // Map center is covered by reference radius of landmark
+                            offScreenCandidates.add(l);
+                        }
+                    }
+                    break;
+                case R.integer.landmark_status_on_screen:
+                    if (bounds.contains(l.getPosition())) {
+                        // Case 3: on-screen > on-screen
+                        // do nothing
+                    } else {
+                        // Case 4: on-screen > off-screen
+                        // remove on-screen landmark and add to off-screen candidate
+                        removeLandmarkFromMap(l);
+                        l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
+                        if (getDistance(l) <= l.getReferenceRadius()) {
+                            // Map center is covered by reference radius of landmark
+                            offScreenCandidates.add(l);
+                        }
+                    }
+                    break;
+                case R.integer.landmark_status_off_screen:
+                    if (bounds.contains(l.getPosition())) {
+                        // Case 5: off-screen > on-screen
+                        // remove off-screen
+                        removeLandmarkFromMap(l);
+                        // display on-screen
+                        if (((Object) l).getClass() == PointLandmark.class) {
+                            // Check if the landmark's position is already covered on the map
+                            if (isAreaFree(l.getPosition())) {
+                                coveredArea.add(l.getPosition());
+                                // Add point landmark map
+                                l.setCategoryStatusLandmark(R.integer.landmark_status_on_screen);
+                                addLandmarkToMap(l, MARKER_ON_SCREEN);
+                            }
+                        } else {
+                            // Display this regional landmark
+                            addLandmarkToMap(l, MARKER_ON_SCREEN);
+                        }
+                    } else {
+                        // Case 6: off-screen > off-screen
+                        // remove landmark and add to off-screen candidate
+                        removeLandmarkFromMap(l);
+                        if (getDistance(l) <= l.getReferenceRadius()) {
+                            // Map center is covered by reference radius of landmark
+                            offScreenCandidates.add(l);
+                        }
+                    }
+                    break;
+            }
+        }
 
-            } else {
+        if (offScreenCandidates.size() > 0) {
+            // Remove redundant landmarks based on their headings and distances
+            ArrayList<Landmark> filteredCandidates = filterLandmarks(offScreenCandidates);
 
+            // Display the filtered off-screen landmarks
+            for (int i = 0; i < filteredCandidates.size(); i++) {
+                Landmark l = filteredCandidates.get(i);
+                if (map.getClass() == GoogleMap.class) {
+                    l.setOffScreenPosition(computeOffScreenPosition(l));
+                }
+                // Check if the landmark's position is already covered on the map
+                if (isAreaFree(l.getOffScreenPosition())) {
+                    coveredArea.add(l.getPosition());
+                    if (i <= filteredCandidates.size() / 2) {
+                        l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
+                        addLandmarkToMap(l, MARKER_OFF_SCREEN_NEAR);
+                    } else {
+                        l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
+                        addLandmarkToMap(l, MARKER_OFF_SCREEN_FAR);
+                    }
+                } else {
+                    //TODO implemente funktion to shift landmark, if area is already covered
+                }
             }
         }
     }
