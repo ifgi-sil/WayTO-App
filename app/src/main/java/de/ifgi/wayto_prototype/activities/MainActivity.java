@@ -568,6 +568,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         display.getSize(size);
         int screenWidth = size.x;
         int screenHeight = size.y;
+        Log.i(TAG, "display size: " + screenWidth + "," + screenHeight);
 
         // Compute the horizontal and vertical ratios
         double horizontalRatio = mapWidth / screenWidth;
@@ -1412,10 +1413,12 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
 
         for (Landmark l : allLandmarks) {
+            //Log.i(TAG, l.getTitle() + "Screen locations: " + map.getProjection().toScreenLocation(l.getPosition()).toString());
+            mapContainsPoint(l);
             // Check whether landmark is on- or off-screen at new camera position
             switch (l.getCategoryStatusLandmark()) {
                 case R.integer.landmark_status_empty:
-                    if (bounds.contains(l.getPosition())) {
+                    if (mapContainsPoint(l)) {
                         // Case 1: empty > on-screen
                         // display on-screen landmarks
                         if (((Object) l).getClass() == PointLandmark.class) {
@@ -1440,7 +1443,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     }
                     break;
                 case R.integer.landmark_status_on_screen:
-                    if (bounds.contains(l.getPosition())) {
+                    if (mapContainsPoint(l)) {
                         // Case 3: on-screen > on-screen
                         // check if zoomed
                         if (currentCameraPosition.zoom != previousCameraPosition.zoom) {
@@ -1459,7 +1462,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     }
                     break;
                 case R.integer.landmark_status_off_screen:
-                    if (bounds.contains(l.getPosition())) {
+                    if (mapContainsPoint(l)) {
                         // Case 5: off-screen > on-screen
                         // remove off-screen
                         removeLandmarkFromMap(l);
@@ -1514,6 +1517,19 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                 }
             }
         }
+    }
+
+    private boolean mapContainsPoint(Landmark l) {
+        int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x;
+        int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y;
+
+        Point lPos = map.getProjection().toScreenLocation(l.getPosition());
+        if (lPos.x >= 0 && lPos.x <= mapPixelWidth && lPos.y >= 0 && lPos.y <= mapPixelHeight) {
+            Log.i(TAG, "PIP true: " + l.getTitle() + ", " + lPos.toString());
+            return true;
+        }
+        Log.i(TAG, "PIP false: " + l.getTitle() + ", " + lPos.toString());
+        return false;
     }
 
     /**
