@@ -21,6 +21,8 @@ import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -235,6 +237,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private GoogleMap map;
     /**
+     * View on top of Google Map
+     */
+    private View mapTouchLayer;
+    /**
      * Map/screen ratio
      */
     private double mapScreenRatio;
@@ -334,6 +340,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 " at zoom level: " + cameraPosition.zoom +
                 " at time: " + getCurrentTime() + "\n";
         Log.i(TAG, "Camera changed to: " + cameraPosition.target.toString() + "at bearing: " + cameraPosition.bearing);
+        Log.i(TAG, "Panning the map: CameraChange listener");
         if (cameraChangedSignificantly(cameraPosition)) {
             if (currentCameraPosition != null) {
                 previousCameraPosition = currentCameraPosition;
@@ -392,6 +399,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     @Override
     public void onMapClick(LatLng latLng) {
+        Log.i(TAG, "Panning the map: Click listener ");
         logger += "Clicked on map at time: " + getCurrentTime() + "\n";
         // Set the lasted clicked marker to null, so the info window will be shown again
         lastOpened = null;
@@ -509,7 +517,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.getUiSettings().setZoomControlsEnabled(false);
                 // Enable MyLocation but disable the corresponding button
                 map.setMyLocationEnabled(true);
-                map.getUiSettings().setMyLocationButtonEnabled(true);
+                map.getUiSettings().setMyLocationButtonEnabled(false);
+                map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+                    @Override
+                    public boolean onMyLocationButtonClick() {
+                        setMapFollowingListenerEnabled(true);
+                        return false;
+                    }
+                });
                 // Animate to starting point
                 animateTo(StartingPoint, 14);
                 // Set OnCameraChangeListener
@@ -522,10 +537,19 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.getUiSettings().setRotateGesturesEnabled(true);
             } else {
                 // Cannot create map
-                String message = getString(R.string.log_map_cannot_create);
+                String message = getString(R.string.log_map_cannot_create_map);
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
                 Log.e(TAG, message);
             }
+        }
+
+        if (mapTouchLayer == null) {
+            mapTouchLayer = findViewById(R.id.map_touch_layer);
+        } else {
+            // Cannot create View Layer
+            String message = getString(R.string.log_map_cannot_create_view_layer);
+            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            Log.e(TAG, message);
         }
     }
 
@@ -1519,6 +1543,16 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      */
     private void updateMapFollowing() {
         if (prefMapFollow) {
+            setMapFollowingListenerEnabled(true);
+            setOnTouchListenerEnabled(true);
+        } else {
+            setMapFollowingListenerEnabled(false);
+            setOnTouchListenerEnabled(false);
+        }
+    }
+
+    private void setMapFollowingListenerEnabled(boolean b) {
+        if (b) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
@@ -1526,8 +1560,25 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
                 }
             });
+            map.getUiSettings().setMyLocationButtonEnabled(false);
         } else {
             map.setOnMyLocationChangeListener(null);
+            map.getUiSettings().setMyLocationButtonEnabled(true);
+        }
+    }
+
+    private void setOnTouchListenerEnabled(boolean b) {
+        if (b) {
+            mapTouchLayer.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    Log.i(TAG, "Panning the map: TouchListener ");
+                    setMapFollowingListenerEnabled(false);
+                    return false; // Pass on the touch to the map or shadow layer.
+                }
+            });
+        } else {
+            mapTouchLayer.setOnTouchListener(null);
         }
     }
 
