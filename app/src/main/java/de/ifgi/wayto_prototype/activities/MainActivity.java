@@ -339,8 +339,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 " at bearing: " + cameraPosition.bearing +
                 " at zoom level: " + cameraPosition.zoom +
                 " at time: " + getCurrentTime() + "\n";
-        Log.i(TAG, "Camera changed to: " + cameraPosition.target.toString() + "at bearing: " + cameraPosition.bearing);
-        Log.i(TAG, "Panning the map: CameraChange listener");
+        Log.i(TAG, "Map moved to position: " + cameraPosition.target.toString() +
+                " at bearing: " + cameraPosition.bearing +
+                " at zoom level: " + cameraPosition.zoom +
+                " at time: " + getCurrentTime());
         if (cameraChangedSignificantly(cameraPosition)) {
             if (currentCameraPosition != null) {
                 previousCameraPosition = currentCameraPosition;
@@ -399,7 +401,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     @Override
     public void onMapClick(LatLng latLng) {
-        Log.i(TAG, "Panning the map: Click listener ");
         logger += "Clicked on map at time: " + getCurrentTime() + "\n";
         // Set the lasted clicked marker to null, so the info window will be shown again
         lastOpened = null;
@@ -891,6 +892,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      *                 2 = off-screen (far)
      */
     private void addLandmarkToMap(Landmark landmark, int distance) {
+        // at a zoomlevel < 14 transform regional landmark into point landmark
         if (((Object) landmark).getClass() == PointLandmark.class ||
                 map.getCameraPosition().zoom < 14) {
             // --- Add PointLandmark ---
@@ -1114,7 +1116,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         }
         // Display the arrow
         Marker marker = map.addMarker(new MarkerOptions()
-                        .anchor(0.5f, 0.5f)
+                        .anchor(0.5f, 0.5f).flat(true)
                         .draggable(false)
                         .icon(BitmapDescriptorFactory.fromBitmap(rotatedArrow))
                         .position(arrowPositionNear)
@@ -1250,7 +1252,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         LatLng mapCenter = map.getCameraPosition().target;
 
         // Calculate and return the heading
-        return SphericalUtil.computeHeading(mapCenter, landmark.getPosition());
+        return (SphericalUtil.computeHeading(mapCenter, landmark.getPosition())-currentCameraPosition.bearing)%360;
     }
 
     /**
@@ -1400,6 +1402,13 @@ New solution: use bounds of the map and only display a landmark as off-screen la
 
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
+        VisibleRegion newbounds = map.getProjection().getVisibleRegion();
+        Log.i("MapRotationBug", "Bearing: " + map.getCameraPosition().bearing
+                + " Zoom: " + map.getCameraPosition().zoom
+                + " LatLng: " + map.getCameraPosition().target.toString()
+                + " Bounds: " + bounds.toString());
+        Log.i("MapRotationBug", "Visible region: " + newbounds);
+
         ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
 
         for (Landmark l : allLandmarks) {
@@ -1572,7 +1581,6 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             mapTouchLayer.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-                    Log.i(TAG, "Panning the map: TouchListener ");
                     setMapFollowingListenerEnabled(false);
                     return false; // Pass on the touch to the map or shadow layer.
                 }
