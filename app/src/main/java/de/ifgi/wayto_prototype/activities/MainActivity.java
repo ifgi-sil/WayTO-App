@@ -1285,7 +1285,9 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      * @return Shifted position
      */
     private LatLng computeOffScreenPosition(Landmark landmark) {
-        // Get the landmark's heading ID
+        // TODO reimplement and use the screens position of the visible area. This can be transformed back to Lng and Lat
+
+        // Get the landmark's heading ID - south, east, north, west
         int headingID = getHeadingID(landmark);
 
         // Get the bounding box of the displayed map and the map center
