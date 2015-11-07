@@ -11,6 +11,11 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.hardware.GeomagneticField;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -179,6 +184,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Preference value for enabling the compass
      */
     private boolean prefMapCompass;
+    /**
+     *
+     */
+    private boolean prefCompassTop;
     /**
      * Preference value for the map type (e.g. normal, hybrid, or satellite)
      */
@@ -422,6 +431,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         prefMapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
         prefMapCompass = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_COMPASS, false);
+        prefCompassTop = preferences.getBoolean(SettingsActivity.PREF_KEY_COMPASS_TOP, false);
         prefMapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -448,8 +458,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         } else {
             map.getUiSettings().setCompassEnabled(false);
         }
-        Log.d(TAG, "Compass enagled: " + map.getUiSettings().isCompassEnabled());
-
+        if (prefCompassTop) {
+            updateMapRotating();
+        }
         int mapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -1710,6 +1721,14 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         } else {
             mapTouchLayer.setOnTouchListener(null);
         }
+    }
+
+    /**
+     * Called when the map rotation preference has changed
+     */
+    private void updateMapRotating() {
+        // TODO implement
+
     }
 
     /**
