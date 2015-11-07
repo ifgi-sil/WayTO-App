@@ -331,6 +331,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     /**
      * Function that is called when the camera is changed.
+     *
      * @param cameraPosition
      */
     @Override
@@ -358,14 +359,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         } else {
             if (Math.abs(currentCameraPosition.target.latitude - cameraPosition.target.latitude) > POSITION_CHANGED_THRESHOLD) {
                 return true;
-            }
-            else if (Math.abs(currentCameraPosition.target.longitude - cameraPosition.target.longitude) > POSITION_CHANGED_THRESHOLD) {
+            } else if (Math.abs(currentCameraPosition.target.longitude - cameraPosition.target.longitude) > POSITION_CHANGED_THRESHOLD) {
                 return true;
-            }
-            else if (Math.abs(currentCameraPosition.bearing - cameraPosition.bearing) > BEARING_CHANGED_THRESHOLD) {
+            } else if (Math.abs(currentCameraPosition.bearing - cameraPosition.bearing) > BEARING_CHANGED_THRESHOLD) {
                 return true;
-            }
-            else {
+            } else {
                 return false;
             }
         }
@@ -642,7 +640,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         ArrayList<Landmark> onScreenCandidates = new ArrayList<Landmark>();
         for (Landmark l : onScreenLandmarks) {
             if (bounds.contains(l.getPosition())) {
-            //if (markerBounds.contains(l.getPosition())) {
+                //if (markerBounds.contains(l.getPosition())) {
                 if (((Object) l).getClass() == PointLandmark.class) {
                     // Check if the landmark's position is already covered on the map
                     if (isAreaFree(l.getPosition())) {
@@ -1067,6 +1065,9 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         // Get the heading (from the map center to the landmark)
         double heading = getHeading(landmark);
 
+        //rotation of arrow according to bearing
+        heading = heading -(360-currentCameraPosition.bearing);
+
         // Compute the reverse heading (from the landmark to the map center)
         double reverseHeading = heading;
         int rotation = (int) (reverseHeading + 360) % 360;
@@ -1075,6 +1076,8 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         } else {
             reverseHeading += 180;
         }
+
+        Log.i("HeadingBug", "Reverse Heading " + reverseHeading + " rotation " + rotation);
 
         // Get the correct drawable depending on the current map type
         BitmapDrawable bitmapDrawable;
@@ -1163,25 +1166,25 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             lat = landmark.getPosition().latitude;
         }
         switch (getHeadingID(landmark)) {
-            case Heading.NORTH_ID:
+            case Heading.TOP_ID:
                 pointAtScreenEdge = new LatLng(
                         map.getProjection().getVisibleRegion().farRight.latitude,
                         lng
                 );
                 break;
-            case Heading.EAST_ID:
+            case Heading.RIGHT_ID:
                 pointAtScreenEdge = new LatLng(
                         lat,
                         map.getProjection().getVisibleRegion().farRight.longitude
                 );
                 break;
-            case Heading.SOUTH_ID:
+            case Heading.BOTTOM_ID:
                 pointAtScreenEdge = new LatLng(
                         map.getProjection().getVisibleRegion().nearLeft.latitude,
                         lng
                 );
                 break;
-            case Heading.WEST_ID:
+            case Heading.LEFT_ID:
                 pointAtScreenEdge = new LatLng(
                         lat,
                         map.getProjection().getVisibleRegion().nearLeft.longitude
@@ -1253,7 +1256,16 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         LatLng mapCenter = map.getCameraPosition().target;
 
         // Calculate and return the heading
-        return (SphericalUtil.computeHeading(mapCenter, landmark.getPosition())-currentCameraPosition.bearing)%360;
+        double heading =  (SphericalUtil.computeHeading(mapCenter, landmark.getPosition()) - currentCameraPosition.bearing) % 360;
+        //return SphericalUtil.computeHeading(mapCenter, landmark.getPosition());
+
+        if (heading < -180) {
+            return heading + 360;
+        } else if (heading > 180) {
+            return heading - 360;
+        } else {
+            return heading;
+        }
     }
 
     /**
@@ -1267,25 +1279,24 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         double heading = getHeading(landmark);
 
         // Return the corresponding heading ID
-        if (heading <= Heading.SOUTH || heading > Heading.EAST) {
-            return Heading.SOUTH_ID;
-        } else if (heading <= Heading.WEST) {
-            return Heading.WEST_ID;
-        } else if (heading <= Heading.NORTH) {
-            return Heading.NORTH_ID;
+        if (heading <= Heading.BOTTOM || heading > Heading.RIGHT) {
+            return Heading.BOTTOM_ID;
+        } else if (heading <= Heading.LEFT) {
+            return Heading.LEFT_ID;
+        } else if (heading <= Heading.TOP) {
+            return Heading.TOP_ID;
         } else {
-            return Heading.EAST_ID;
+            return Heading.RIGHT_ID;
         }
     }
 
-    /**
+/*    *//**
      * Function to compute the shifted position of an off-screen landmark
      *
      * @param landmark Landmark to be shifted
      * @return Shifted position
-     */
-    private LatLng computeOffScreenPosition(Landmark landmark) {
-        // TODO reimplement and use the screens position of the visible area. This can be transformed back to Lng and Lat
+     *//*
+    private LatLng computeOffScreenPositionOld(Landmark landmark) {
 
         // Get the landmark's heading ID - south, east, north, west
         int headingID = getHeadingID(landmark);
@@ -1316,25 +1327,25 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         double shiftedLat = 0;
         double shiftedLng = 0;
         switch (headingID) {
-            case Heading.SOUTH_ID:
+            case Heading.BOTTOM_ID:
                 // Compute the landmark's shifted position for the Southern heading
                 shiftedLat = boundingLatMin;
                 shiftedLng = lngMapCenter - (lngLM - lngMapCenter) / (latLM - latMapCenter) *
                         (latMapCenter - boundingLatMin);
                 break;
-            case Heading.WEST_ID:
+            case Heading.LEFT_ID:
                 // Compute the landmark's shifted position for the Western heading
                 shiftedLat = latMapCenter - (latLM - latMapCenter) / (lngLM - lngMapCenter) *
                         (lngMapCenter - boundingLngMin);
                 shiftedLng = boundingLngMin;
                 break;
-            case Heading.NORTH_ID:
+            case Heading.TOP_ID:
                 // Compute the landmark's shifted position for the Northern heading
                 shiftedLat = boundingLatMax;
                 shiftedLng = lngMapCenter + (lngLM - lngMapCenter) / (latLM - latMapCenter) *
                         (boundingLatMax - latMapCenter);
                 break;
-            case Heading.EAST_ID:
+            case Heading.RIGHT_ID:
                 // Compute the landmark's shifted position for the Eastern heading
                 shiftedLat = latMapCenter + (latLM - latMapCenter) / (lngLM - lngMapCenter) *
                         (boundingLngMax - lngMapCenter);
@@ -1350,6 +1361,99 @@ New solution: use bounds of the map and only display a landmark as off-screen la
 
         // Return the landmark's shifted position
         LatLng shiftedPosition = new LatLng(shiftedLat, shiftedLng);
+        Log.d(TAG, landmark.getTitle() + getString(R.string.log_landmark_shifted_location) +
+                shiftedPosition.toString());
+        return shiftedPosition;
+    }*/
+
+    /**
+     * Function to compute the shifted position of an off-screen landmark
+     *
+     * @param landmark Landmark to be shifted
+     * @return Shifted position
+     */
+    private LatLng computeOffScreenPosition(Landmark landmark) {
+
+        // Get the landmark's heading ID - south, east, north, west
+        int headingID = getHeadingID(landmark);
+
+        // Get the bounding box of the displayed map and the map center
+        int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x; // Nexus5: 1080; width = x
+        int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y; // Nexus5: 1536: height = y
+
+        double span = 100;
+
+        // Get the min/max latitude values
+        double boundingXMin = span;
+        double boundingXMax = mapPixelWidth - span;
+
+        // Get the min/max longitude values
+        double boundingYMin = span;
+        double boundingYMax = mapPixelHeight - span;
+
+        // Simplify the names of the variables
+        double xMapCenter = mapPixelWidth / 2;
+        double yMapCenter = mapPixelHeight / 2;
+        double xLM = map.getProjection().toScreenLocation(landmark.getPosition()).x;
+        double yLM = map.getProjection().toScreenLocation(landmark.getPosition()).y;
+/*
+        Log.i("OffScreenComputation", "Landmark: " + landmark.getTitle() +
+                        "width: " + mapPixelWidth +
+                        "; height: " + mapPixelHeight +
+                        "; boundingXmin: " + boundingXMin +
+                        "; boundingXmax: " + boundingXMax +
+                        "; boundingYmin: " + boundingYMin +
+                        "; boundingYmax: " + boundingYMax +
+                        "; centerx: " + xMapCenter +
+                        "; centery: " + yMapCenter +
+                        "; landX: " + xLM +
+                        "; landY: " + yLM
+        );*/
+
+        // Start the computation
+        double shiftedX = 0;
+        double shiftedY = 0;
+        switch (headingID) {
+            case Heading.BOTTOM_ID:
+                // Compute the landmark's shifted position for the Southern heading
+                //Log.i("OffScreenComputation", "south");
+                shiftedY = boundingYMax;
+                shiftedX = xMapCenter - (xLM - xMapCenter) / (yLM - yMapCenter) *
+                        (yMapCenter - boundingYMax);
+                break;
+            case Heading.LEFT_ID:
+                // Compute the landmark's shifted position for the Western heading
+                //Log.i("OffScreenComputation", "west");
+                shiftedY = yMapCenter + (yLM - yMapCenter) / (xLM - xMapCenter) *
+                        (boundingXMin - xMapCenter);
+                shiftedX = boundingXMin;
+                break;
+            case Heading.TOP_ID:
+                // Compute the landmark's shifted position for the Northern heading
+                //Log.i("OffScreenComputation", "north");
+                shiftedY = boundingYMin;
+                shiftedX = xMapCenter + (xLM - xMapCenter) / (yLM - yMapCenter) *
+                        (boundingYMin - yMapCenter);
+                break;
+            case Heading.RIGHT_ID:
+                // Compute the landmark's shifted position for the Eastern heading
+                //Log.i("OffScreenComputation", "east");
+                shiftedY = yMapCenter - (yLM - yMapCenter) / (xLM - xMapCenter) *
+                        (xMapCenter - boundingXMax);
+                shiftedX = boundingXMax;
+                break;
+        }
+
+        //Log.i("OffScreenComputation", "shiftedX: " + shiftedX + "; shiftedY: " + shiftedY);
+
+        // Move the position to the allowed bounding box if necessary
+        if (shiftedX < boundingXMin) shiftedX = boundingXMin;
+        if (shiftedX > boundingXMax) shiftedX = boundingXMax;
+        if (shiftedY < boundingYMin) shiftedY = boundingYMin;
+        if (shiftedY > boundingYMax) shiftedY = boundingYMax;
+
+        // Return the landmark's shifted position
+        LatLng shiftedPosition = map.getProjection().fromScreenLocation(new Point((int) shiftedX, (int) shiftedY));
         Log.d(TAG, landmark.getTitle() + getString(R.string.log_landmark_shifted_location) +
                 shiftedPosition.toString());
         return shiftedPosition;
@@ -1391,6 +1495,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      * Case 4: previous = landmark off-screen > now = landmark on-screen > display landmark on screen
      * Case 5: previous = landmark on-screen > now = landmark off-screen > make landmark a off-screen candidate
      * Case 6: previous = landmark off-screen > now = landmark off-screen > make landmark a off-screen candidate
+     *
      * @param useOnlineLandmarks
      */
     private void recalculateLandmarks(boolean useOnlineLandmarks) {
@@ -1403,14 +1508,14 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             allLandmarks = (ArrayList<Landmark>) landmarks.clone();
         }
 
-        // Get the bounding box of the displayed map and the map center
+/*        // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
         VisibleRegion newbounds = map.getProjection().getVisibleRegion();
         Log.i("MapRotationBug", "Bearing: " + map.getCameraPosition().bearing
                 + " Zoom: " + map.getCameraPosition().zoom
                 + " LatLng: " + map.getCameraPosition().target.toString()
                 + " Bounds: " + bounds.toString());
-        Log.i("MapRotationBug", "Visible region: " + newbounds);
+        Log.i("MapRotationBug", "Visible region: " + newbounds);*/
 
         ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
 
@@ -1449,7 +1554,8 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                         // Case 3: on-screen > on-screen
                         // check if zoomed
                         if (currentCameraPosition.zoom != previousCameraPosition.zoom) {
-                            if (l.getLandmarkMarkerCircle() != null) l.getLandmarkMarkerCircle().remove();
+                            if (l.getLandmarkMarkerCircle() != null)
+                                l.getLandmarkMarkerCircle().remove();
                             addCircleToMap(l, l.getPosition());
                         }
                     } else {
@@ -1522,15 +1628,13 @@ New solution: use bounds of the map and only display a landmark as off-screen la
     }
 
     private boolean mapContainsPoint(Landmark l) {
-        int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x;
-        int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y;
+        int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x; // Nexus5: 1080
+        int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y; // Nexus5: 1536
 
         Point lPos = map.getProjection().toScreenLocation(l.getPosition());
         if (lPos.x >= 0 && lPos.x <= mapPixelWidth && lPos.y >= 0 && lPos.y <= mapPixelHeight) {
-            Log.i(TAG, "PIP true: " + l.getTitle() + ", " + lPos.toString());
             return true;
         }
-        Log.i(TAG, "PIP false: " + l.getTitle() + ", " + lPos.toString());
         return false;
     }
 
@@ -1629,13 +1733,13 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         // Iterate through all landmarks
         for (Landmark l : unfilteredLandmarks) {
             int headingID = getHeadingID(l);
-            if (headingID == Heading.EAST_ID && (east == null || (east != null &&
+            if (headingID == Heading.RIGHT_ID && (east == null || (east != null &&
                     l.getReferenceRadius() > east.getReferenceRadius()))) {
                 east = l;
-            } else if (headingID == Heading.SOUTH_ID && (south == null || (south != null &&
+            } else if (headingID == Heading.BOTTOM_ID && (south == null || (south != null &&
                     l.getReferenceRadius() > south.getReferenceRadius()))) {
                 south = l;
-            } else if (headingID == Heading.WEST_ID && (west == null || (west != null &&
+            } else if (headingID == Heading.LEFT_ID && (west == null || (west != null &&
                     l.getReferenceRadius() > west.getReferenceRadius()))) {
                 west = l;
             } else if (north == null || (north != null &&

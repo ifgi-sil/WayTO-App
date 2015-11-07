@@ -10,33 +10,33 @@ public abstract class Heading {
     /**
      * North direction ending angle in degree
      */
-    public static final double NORTH = 45;
+    public static final double TOP = 45;
     /**
      * East direction ending angle in degree
      */
-    public static final double EAST = 135;
+    public static final double RIGHT = 135;
     /**
      * South direction ending angle in degree
      */
-    public static final double SOUTH = -135;
+    public static final double BOTTOM = -135;
     /**
      * West direction ending angle in degree
      */
-    public static final double WEST = -45;
+    public static final double LEFT = -45;
     /**
      * ID of the North direction
      */
-    public static final int NORTH_ID = 0;
+    public static final int TOP_ID = 0;
     /**
      * ID of the East direction
      */
-    public static final int EAST_ID = 1;
+    public static final int RIGHT_ID = 1;
     /**
      * ID of the South direction
      */
-    public static final int SOUTH_ID = 2;
+    public static final int BOTTOM_ID = 2;
     /**
      * ID of the West direction
      */
-    public static final int WEST_ID = 3;
+    public static final int LEFT_ID = 3;
 }
