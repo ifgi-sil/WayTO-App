@@ -11,13 +11,13 @@
             android:defaultValue="false" />
 
         <SwitchPreference
-            android:key="pref_key_map_compass"
-            android:title="@string/pref_title_map_compass"
+            android:key="pref_key_compass_top"
+            android:title="@string/pref_title_compass_top"
             android:defaultValue="false" />
 
         <SwitchPreference
-            android:key="pref_key_compass_top"
-            android:title="@string/pref_title_compass_top"
+            android:key="pref_key_map_compass"
+            android:title="@string/pref_title_map_compass"
             android:defaultValue="false" />
 
         <ListPreference

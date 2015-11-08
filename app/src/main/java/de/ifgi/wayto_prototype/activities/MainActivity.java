@@ -11,11 +11,9 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
-import android.hardware.GeomagneticField;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -265,7 +263,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * current camera position
      */
-    private CameraPosition currentCameraPosition;
+    private CameraPosition currentCameraPosition = new CameraPosition(StartingPoint, 14, 0, 0);
     /**
      * previous camera position
      */
@@ -452,16 +450,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
-        if (prefMapFollow) {
-            updateMapFollowing();
-        }
+        updateMapRotatingAndFollowing();
         if (prefMapCompass) {
             map.getUiSettings().setCompassEnabled(true);
         } else {
             map.getUiSettings().setCompassEnabled(false);
-        }
-        if (prefCompassTop) {
-            updateMapRotating();
         }
         int mapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
@@ -533,7 +526,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
                     @Override
                     public boolean onMyLocationButtonClick() {
-                        setMapFollowingListenerEnabled(true);
+                        setMapFollowingListenerEnabled(true, prefCompassTop);
                         return false;
                     }
                 });
@@ -1685,29 +1678,53 @@ New solution: use bounds of the map and only display a landmark as off-screen la
     /**
      * Called when the map following preference has been changed
      */
-    private void updateMapFollowing() {
-        if (prefMapFollow) {
-            setMapFollowingListenerEnabled(true);
+    private void updateMapRotatingAndFollowing() {
+        if (prefMapFollow && prefCompassTop) {
+            setMapFollowingListenerEnabled(true, true);
             setOnTouchListenerEnabled(true);
-        } else {
-            setMapFollowingListenerEnabled(false);
+            Log.i("updateMapRotiationandfollowing: ", "true true");
+        } else if (prefMapFollow && !prefCompassTop) {
+            setMapFollowingListenerEnabled(true, false);
+            setOnTouchListenerEnabled(true);
+            Log.i("updateMapRotiationandfollowing: ", "true false");
+        } else if (!prefMapFollow && prefCompassTop) {
+            setMapFollowingListenerEnabled(false, true);
             setOnTouchListenerEnabled(false);
+            Log.i("updateMapRotiationandfollowing: ", "false true");
+        } else {
+            setMapFollowingListenerEnabled(false, false);
+            setOnTouchListenerEnabled(false);
+            Log.i("updateMapRotiationandfollowing: ", "false false");
         }
     }
 
-    private void setMapFollowingListenerEnabled(boolean b) {
-        if (b) {
+    private void setMapFollowingListenerEnabled(boolean mapFollowing, boolean compassTop) {
+        if (mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), 14);
+                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
                     Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
                 }
             });
-            map.getUiSettings().setMyLocationButtonEnabled(false);
-        } else {
+        } else if(mapFollowing && !compassTop) {
+            map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, currentCameraPosition.zoom);
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                }
+            });
+        } else if (!mapFollowing && compassTop) {
+            map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                }
+            });
+        } else if (!mapFollowing && !compassTop) {
             map.setOnMyLocationChangeListener(null);
-            map.getUiSettings().setMyLocationButtonEnabled(true);
         }
     }
 
@@ -1716,7 +1733,8 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             mapTouchLayer.setOnTouchListener(new View.OnTouchListener() {
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-                    setMapFollowingListenerEnabled(false);
+                    setMapFollowingListenerEnabled(false, prefCompassTop);
+                    map.getUiSettings().setMyLocationButtonEnabled(true);
                     return false; // Pass on the touch to the map or shadow layer.
                 }
             });
