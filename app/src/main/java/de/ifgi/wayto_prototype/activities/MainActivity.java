@@ -28,6 +28,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -282,6 +283,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // Read the preferences
         loadPreferences();
@@ -536,7 +538,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     }
                 });
                 // Animate to starting point
-                animateTo(StartingPoint, 14);
+                animateTo(StartingPoint, 0, 14);
                 // Set OnCameraChangeListener
                 map.setOnCameraChangeListener(this);
                 // Set OnMarkerClickListener
@@ -593,10 +595,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * @param destination Destination to move to
      * @param zoom        Zoom level
      */
-    private void animateTo(LatLng destination, float zoom) {
+    private void animateTo(LatLng destination, float bearing, float zoom) {
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(destination)
-                .zoom(zoom)
+                .zoom(zoom).bearing(bearing)
                 .build();
         map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
@@ -1698,7 +1700,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 14);
+                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), 14);
                     Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
                 }
             });
@@ -1728,7 +1730,17 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      */
     private void updateMapRotating() {
         // TODO implement
+        SensorEventListener sensorEvent = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent sensorEvent) {
 
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int i) {
+
+            }
+        };
     }
 
     /**
