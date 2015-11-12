@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 
 import de.ifgi.wayto_prototype.R;
@@ -127,6 +128,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private final int MARKER_OFF_SCREEN_FAR = 2;
 
+    private final int OFF_SCREEN_LANDMARKS_TOP = 1;
+    private final int OFF_SCREEN_LANDMARKS_RIGHT = 3;
+    private final int OFF_SCREEN_LANDMARKS_BOTTOM = 1;
+    private final int OFF_SCREEN_LANDMARKS_LEFT = 3;
     // --- End of marker variables ---
 
     // --- Method variables ---
@@ -1776,47 +1781,83 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      */
     private ArrayList<Landmark> filterLandmarks(ArrayList<Landmark> unfilteredLandmarks) {
         // Store the landmarks for each heading
-        Landmark north = null;
-        Landmark east = null;
-        Landmark south = null;
-        Landmark west = null;
+        ArrayList<Landmark> top = new ArrayList<Landmark>();
+        ArrayList<Landmark> right = new ArrayList<Landmark>();
+        ArrayList<Landmark> bottom = new ArrayList<Landmark>();
+        ArrayList<Landmark> left = new ArrayList<Landmark>();
 
         // Iterate through all landmarks
         for (Landmark l : unfilteredLandmarks) {
             int headingID = getHeadingID(l);
-            if (headingID == Heading.RIGHT_ID && (east == null || (east != null &&
-                    l.getReferenceRadius() > east.getReferenceRadius()))) {
-                east = l;
-            } else if (headingID == Heading.BOTTOM_ID && (south == null || (south != null &&
-                    l.getReferenceRadius() > south.getReferenceRadius()))) {
-                south = l;
-            } else if (headingID == Heading.LEFT_ID && (west == null || (west != null &&
-                    l.getReferenceRadius() > west.getReferenceRadius()))) {
-                west = l;
-            } else if (north == null || (north != null &&
-                    l.getReferenceRadius() > north.getReferenceRadius())) {
-                north = l;
+            if (headingID == Heading.RIGHT_ID) {
+                right.add(l);
+            } else if (headingID == Heading.BOTTOM_ID) {
+                bottom.add(l);
+            } else if (headingID == Heading.LEFT_ID) {
+                left.add(l);
+            } else if (headingID == Heading.TOP_ID) {
+                top.add(l);
             }
         }
 
-        // Return the filtered landmarks
+        //Sorting Arraylists in descending order
+        Collections.sort(top, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
+        Collections.sort(right, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
+        Collections.sort(bottom, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
+        Collections.sort(left, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
         ArrayList<Landmark> filteredLandmarks = new ArrayList<Landmark>();
-        if (north != null) {
-            north.setDistance(getDistance(north));
-            filteredLandmarks.add(north);
+
+        Log.i(TAG, "Number of Landmarks per edge top, right, bottom, left: " + top.size() + ", " + right.size() + ", " + bottom.size() + ", " + left.size());
+
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_TOP; i++) {
+            if (i < top.size()) {
+                top.get(i).setDistance(getDistance(top.get(i)));
+                filteredLandmarks.add(top.get(i));
+            }
         }
-        if (east != null) {
-            east.setDistance(getDistance(east));
-            filteredLandmarks.add(east);
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_RIGHT; i++) {
+            if (i < right.size()) {
+                right.get(i).setDistance(getDistance(right.get(i)));
+                filteredLandmarks.add(right.get(i));
+            }
         }
-        if (south != null) {
-            south.setDistance(getDistance(south));
-            filteredLandmarks.add(south);
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_BOTTOM; i++) {
+            if (i < bottom.size()) {
+                bottom.get(i).setDistance(getDistance(bottom.get(i)));
+                filteredLandmarks.add(bottom.get(i));
+            }
         }
-        if (west != null) {
-            west.setDistance(getDistance(west));
-            filteredLandmarks.add(west);
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_LEFT; i++) {
+            if (i < left.size()) {
+                left.get(i).setDistance(getDistance(left.get(i)));
+                filteredLandmarks.add(left.get(i));
+            }
         }
+
         if (filteredLandmarks.size() == 0) {
             return null;
         } else {

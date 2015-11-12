@@ -114,6 +114,11 @@ public abstract class Landmark implements Comparable<Landmark> {
         return (int) (getDistance() - compareLandmark.getDistance());
     }
 
+    public boolean compareRefenenceTo(Landmark compareLandmark) {
+        // Ascending order
+        return getReferenceRadius() > compareLandmark.getReferenceRadius();
+    }
+
     public void setCategoryStatusLandmark (int categoryStatusLandmark) {
         this.categoryStatusLandmark = categoryStatusLandmark;
     }
