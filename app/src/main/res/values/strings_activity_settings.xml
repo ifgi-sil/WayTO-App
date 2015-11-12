@@ -8,6 +8,10 @@
 
     <string name="pref_title_map_follow">Follow user</string>
 
+    <string name="pref_title_map_compass">Enable compass</string>
+
+    <string name="pref_title_compass_top">Rotate map to compass</string>
+
     <string name="pref_title_map_type">Map type</string>
     <string-array name="pref_items_map_type">
         <item>Normal</item>

@@ -1,6 +1,11 @@
 package de.ifgi.wayto_prototype.landmarks;
 
+import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.Polygon;
+
+import de.ifgi.wayto_prototype.R;
 
 /**
  * Super class for landmarks
@@ -33,6 +38,18 @@ public abstract class Landmark implements Comparable<Landmark> {
      * Category's drawable for the symbol on the map (coloured)
      */
     private int categoryDrawableColoured;
+    /**
+     * Category for on-screen and off-screen landmark;
+     */
+    private int categoryStatusLandmark = R.integer.landmark_status_empty;
+
+    // --- Marker elements ---
+
+    private Marker landmarkMarker = null;
+    private GroundOverlay landmarkMarkerCircle = null;
+    private Marker landmarkMarkerArrow = null;
+    private Polygon landmarkMarkerPolygon = null;
+    private Polygon landmarkMarkerWedge = null;
 
     /**
      * (Super) Constructor of the Landmark class
@@ -95,5 +112,58 @@ public abstract class Landmark implements Comparable<Landmark> {
     public int compareTo(Landmark compareLandmark) {
         // Ascending order
         return (int) (getDistance() - compareLandmark.getDistance());
+    }
+
+    public boolean compareRefenenceTo(Landmark compareLandmark) {
+        // Ascending order
+        return getReferenceRadius() > compareLandmark.getReferenceRadius();
+    }
+
+    public void setCategoryStatusLandmark (int categoryStatusLandmark) {
+        this.categoryStatusLandmark = categoryStatusLandmark;
+    }
+
+    public int getCategoryStatusLandmark () {
+        return categoryStatusLandmark;
+    }
+
+    public Marker getLandmarkMarker() {
+        return landmarkMarker;
+    }
+
+    public GroundOverlay getLandmarkMarkerCircle() {
+        return landmarkMarkerCircle;
+    }
+
+    public Marker getLandmarkMarkerArrow() {
+        return landmarkMarkerArrow;
+    }
+
+    public Polygon getLandmarkMarkerPolygon() {
+        return landmarkMarkerPolygon;
+    }
+
+    public Polygon getLandmarkMarkerWedge() {
+        return landmarkMarkerWedge;
+    }
+
+    public void setLandmarkMarker(Marker landmarkMarker) {
+        this.landmarkMarker = landmarkMarker;
+    }
+
+    public void setLandmarkMarkerCircle(GroundOverlay landmarkMarkerCircle) {
+        this.landmarkMarkerCircle = landmarkMarkerCircle;
+    }
+
+    public void setLandmarkMarkerArrow(Marker landmarkMarkerArrow) {
+        this.landmarkMarkerArrow = landmarkMarkerArrow;
+    }
+
+    public void setLandmarkMarkerPolygon(Polygon landmarkMarkerPolygon) {
+        this.landmarkMarkerPolygon = landmarkMarkerPolygon;
+    }
+
+    public void setLandmarkMarkerWedge(Polygon landmarkMarkerWedge) {
+        this.landmarkMarkerWedge = landmarkMarkerWedge;
     }
 }

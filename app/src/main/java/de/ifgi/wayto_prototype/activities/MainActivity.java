@@ -11,6 +11,9 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,6 +24,9 @@ import android.view.Display;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -28,11 +34,13 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.GroundOverlay;
 import com.google.android.gms.maps.model.GroundOverlayOptions;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
@@ -52,6 +60,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 
 import de.ifgi.wayto_prototype.R;
@@ -61,13 +70,11 @@ import de.ifgi.wayto_prototype.landmarks.PointLandmark;
 import de.ifgi.wayto_prototype.landmarks.RegionalLandmark;
 import de.ifgi.wayto_prototype.map.Heading;
 
-/* Angela */
-
 
 /**
  * Main activity that displays the map
  *
- * @author Marius Runde
+ * @author Marius Runde, Heinrich Löwen
  */
 public class MainActivity extends FragmentActivity implements GoogleMap.OnCameraChangeListener,
         GoogleMap.OnMarkerClickListener, GoogleMap.OnMapClickListener {
@@ -121,6 +128,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private final int MARKER_OFF_SCREEN_FAR = 2;
 
+    private final int OFF_SCREEN_LANDMARKS_TOP = 1;
+    private final int OFF_SCREEN_LANDMARKS_RIGHT = 3;
+    private final int OFF_SCREEN_LANDMARKS_BOTTOM = 1;
+    private final int OFF_SCREEN_LANDMARKS_LEFT = 3;
     // --- End of marker variables ---
 
     // --- Method variables ---
@@ -174,6 +185,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private boolean prefMapFollow;
     /**
+     * Preference value for enabling the compass
+     */
+    private boolean prefMapCompass;
+    /**
+     *
+     */
+    private boolean prefCompassTop;
+    /**
      * Preference value for the map type (e.g. normal, hybrid, or satellite)
      */
     private int prefMapType;
@@ -211,6 +230,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     // --- Landmark and map variables ---
 
     /**
+     * Vertical map ratio
+     */
+    private final double VERTICAL_MAP_RATIO = 16.44;
+    /**
+     * Horizontal map ratio
+     */
+    private final double HORIZONTAL_MAP_RATIO = 10;
+    /**
      * List of pre-defined landmarks
      */
     private final ArrayList<Landmark> PRE_DEFINED_LANDMARKS = LandmarkCollection.initLandmarks();
@@ -223,6 +250,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private GoogleMap map;
     /**
+     * View on top of Google Map
+     */
+    private View mapTouchLayer;
+    /**
      * Map/screen ratio
      */
     private double mapScreenRatio;
@@ -233,7 +264,21 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Area which is covered by the markers and underlying circles
      */
-    private ArrayList<LatLng> coveredArea;
+    private ArrayList<LatLng> coveredArea = new ArrayList<LatLng>();
+    /**
+     * current camera position
+     */
+    private CameraPosition currentCameraPosition = new CameraPosition(StartingPoint, 14, 0, 0);
+    /**
+     * previous camera position
+     */
+    private CameraPosition previousCameraPosition;
+
+    /**
+     *
+     */
+    private final Double POSITION_CHANGED_THRESHOLD = 0.00001;
+    private final Double BEARING_CHANGED_THRESHOLD = 1.0;
 
     // --- End of landmark and map variables ---
 
@@ -241,6 +286,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // Read the preferences
         loadPreferences();
@@ -264,6 +310,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         return true;
     }
 
+    /**
+     * Funktion to handle the options menu
+     *
+     * @param item Gets the menu item that was selected by the user
+     * @return boolean
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -291,11 +343,44 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
+    /**
+     * Function that is called when the camera is changed.
+     *
+     * @param cameraPosition
+     */
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         logger += "Map moved to position: " + cameraPosition.target.toString() +
-                " at zoom level: " + cameraPosition.zoom + " at time: " + getCurrentTime() + "\n";
-        updateMap();
+                " at bearing: " + cameraPosition.bearing +
+                " at zoom level: " + cameraPosition.zoom +
+                " at time: " + getCurrentTime() + "\n";
+        Log.i(TAG, "Map moved to position: " + cameraPosition.target.toString() +
+                " at bearing: " + cameraPosition.bearing +
+                " at zoom level: " + cameraPosition.zoom +
+                " at time: " + getCurrentTime());
+        if (cameraChangedSignificantly(cameraPosition)) {
+            if (currentCameraPosition != null) {
+                previousCameraPosition = currentCameraPosition;
+            }
+            currentCameraPosition = cameraPosition;
+            updateMap();
+        }
+    }
+
+    private boolean cameraChangedSignificantly(CameraPosition cameraPosition) {
+        if (currentCameraPosition == null) {
+            return true;
+        } else {
+            if (Math.abs(currentCameraPosition.target.latitude - cameraPosition.target.latitude) > POSITION_CHANGED_THRESHOLD) {
+                return true;
+            } else if (Math.abs(currentCameraPosition.target.longitude - cameraPosition.target.longitude) > POSITION_CHANGED_THRESHOLD) {
+                return true;
+            } else if (Math.abs(currentCameraPosition.bearing - cameraPosition.bearing) > BEARING_CHANGED_THRESHOLD) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     @Override
@@ -350,6 +435,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void loadPreferences() {
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         prefMapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
+        prefMapCompass = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_COMPASS, false);
+        prefCompassTop = preferences.getBoolean(SettingsActivity.PREF_KEY_COMPASS_TOP, false);
         prefMapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
                         getString(R.string.map_type_normal)));
@@ -368,10 +455,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
-        boolean mapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
-        if (prefMapFollow != mapFollow) {
-            prefMapFollow = mapFollow;
-            updateMapFollowing();
+        updateMapRotatingAndFollowing();
+        if (prefMapCompass) {
+            map.getUiSettings().setCompassEnabled(true);
+        } else {
+            map.getUiSettings().setCompassEnabled(false);
         }
         int mapType = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_MAP_TYPE,
@@ -440,8 +528,15 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 // Enable MyLocation but disable the corresponding button
                 map.setMyLocationEnabled(true);
                 map.getUiSettings().setMyLocationButtonEnabled(false);
+                map.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+                    @Override
+                    public boolean onMyLocationButtonClick() {
+                        setMapFollowingListenerEnabled(true, prefCompassTop);
+                        return false;
+                    }
+                });
                 // Animate to starting point
-                animateTo(StartingPoint, 14);
+                animateTo(StartingPoint, 0, 14);
                 // Set OnCameraChangeListener
                 map.setOnCameraChangeListener(this);
                 // Set OnMarkerClickListener
@@ -449,20 +544,31 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 // Set OnMapClickListener
                 map.setOnMapClickListener(this);
                 // Angela set rotation false
-                map.getUiSettings().setRotateGesturesEnabled(false);
+                map.getUiSettings().setRotateGesturesEnabled(true);
             } else {
                 // Cannot create map
-                String message = getString(R.string.log_map_cannot_create);
+                String message = getString(R.string.log_map_cannot_create_map);
                 Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
                 Log.e(TAG, message);
             }
+        }
+
+        if (mapTouchLayer == null) {
+            mapTouchLayer = findViewById(R.id.map_touch_layer);
+        } else {
+            // Cannot create View Layer
+            String message = getString(R.string.log_map_cannot_create_view_layer);
+            Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
+            Log.e(TAG, message);
         }
     }
 
     private void computeMapScreenRatio() {
         // Get the map bounds
         VisibleRegion vr = map.getProjection().getVisibleRegion();
+        // upperLeft and upperRight
         double mapWidth = SphericalUtil.computeDistanceBetween(vr.farLeft, vr.farRight);
+        // upperLeft and lowerLeft
         double mapHeight = SphericalUtil.computeDistanceBetween(vr.farLeft, vr.nearLeft);
 
         // Get the screen bounds
@@ -471,6 +577,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         display.getSize(size);
         int screenWidth = size.x;
         int screenHeight = size.y;
+        Log.i(TAG, "display size: " + screenWidth + "," + screenHeight);
 
         // Compute the horizontal and vertical ratios
         double horizontalRatio = mapWidth / screenWidth;
@@ -486,10 +593,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * @param destination Destination to move to
      * @param zoom        Zoom level
      */
-    private void animateTo(LatLng destination, float zoom) {
+    private void animateTo(LatLng destination, float bearing, float zoom) {
         CameraPosition cameraPosition = new CameraPosition.Builder()
                 .target(destination)
-                .zoom(zoom)
+                .zoom(zoom).bearing(bearing)
                 .build();
         map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
     }
@@ -516,6 +623,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
         LatLng mapCenter = new LatLng(bounds.getCenter().latitude, bounds.getCenter().longitude);
+/*
+Currently not used, because only relevant for on screen landmarks that lie in the border where off-screen landmarks are displayed.
+New solution: use bounds of the map and only display a landmark as off-screen landmark, when is not visible on map any more.
+
+        // Make up a inner frame, where the off-screen landmarks shall be displayed.
+        // The center of the off-screen landmarks will be at a tenth of the display/map width
 
         // Calculate the latitude and longitude spans
         double spanLat = bounds.northeast.latitude - bounds.southwest.latitude;
@@ -532,11 +645,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Get the bounding box where the markers shall be displayed
         LatLngBounds markerBounds = new LatLngBounds(new LatLng(boundingLatMin, boundingLngMin),
                 new LatLng(boundingLatMax, boundingLngMax));
+*/
 
         // Get all on-screen candidate landmarks and display the regional ones
         ArrayList<Landmark> onScreenCandidates = new ArrayList<Landmark>();
         for (Landmark l : onScreenLandmarks) {
-            if (markerBounds.contains(l.getPosition())) {
+            if (bounds.contains(l.getPosition())) {
+                //if (markerBounds.contains(l.getPosition())) {
                 if (((Object) l).getClass() == PointLandmark.class) {
                     // Check if the landmark's position is already covered on the map
                     if (isAreaFree(l.getPosition())) {
@@ -588,6 +703,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     } else {
                         addLandmarkToMap(l, MARKER_OFF_SCREEN_FAR);
                     }
+                } else {
+                    //TODO implemente funktion to shift landmark, if area is already covered
                 }
             }
         }
@@ -785,6 +902,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      *                 2 = off-screen (far)
      */
     private void addLandmarkToMap(Landmark landmark, int distance) {
+        // at a zoomlevel < 14 transform regional landmark into point landmark
         if (((Object) landmark).getClass() == PointLandmark.class ||
                 map.getCameraPosition().zoom < 14) {
             // --- Add PointLandmark ---
@@ -820,10 +938,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             }
 
             // Add the underlying circle to the map
-            addCircleToMap(displayedPosition);
+            addCircleToMap(landmark, displayedPosition);
 
             // Add the landmark as a marker to the map
-            map.addMarker(new MarkerOptions()
+            Marker marker = map.addMarker(new MarkerOptions()
                             .anchor(0.5f, 0.5f)
                             .draggable(false)
                             .icon(BitmapDescriptorFactory.fromBitmap(icon))
@@ -831,6 +949,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                             .title(tempLandmark.getTitle())
                             .visible(true)
             );
+            landmark.setLandmarkMarker(marker);
             Log.d(TAG, getString(R.string.log_map_point_landmark_added) +
                     displayedPosition.toString());
 
@@ -882,6 +1001,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                                             bounds.southwest.longitude))
                                     .visible(true)
                     );
+                    // TODO add to landmark class
                     Log.d(TAG, getString(R.string.log_map_bbox_added) + landmark.getPosition());
                     break;
                 case METHOD_POLYGON:
@@ -891,6 +1011,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                                     .addAll(shapePoints)
                                     .visible(true)
                     );
+                    // TODO add to landmark class
                     Log.d(TAG, getString(R.string.log_map_regional_landmark_added) +
                             shapePoints.toString());
                     break;
@@ -899,11 +1020,33 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     }
 
     /**
+     * Removes the landmark from the map.
+     *
+     * @param l Specified Landmark
+     */
+    private void removeLandmarkFromMap(Landmark l) {
+        // Remove Landmark
+        if (l.getLandmarkMarker() != null) l.getLandmarkMarker().remove();
+        if (l.getLandmarkMarkerCircle() != null) l.getLandmarkMarkerCircle().remove();
+        if (l.getLandmarkMarkerArrow() != null) l.getLandmarkMarkerArrow().remove();
+        if (l.getLandmarkMarkerPolygon() != null) l.getLandmarkMarkerPolygon().remove();
+        if (l.getLandmarkMarkerWedge() != null) l.getLandmarkMarkerWedge().remove();
+
+        // Remove covered Area entry
+        if (coveredArea.contains(l.getPosition())) {
+            coveredArea.remove(coveredArea.indexOf(l.getPosition()));
+        }
+        if (coveredArea.contains(l.getOffScreenPosition())) {
+            coveredArea.remove(coveredArea.indexOf(l.getOffScreenPosition()));
+        }
+    }
+
+    /**
      * Function to draw a circle below the markers
      *
      * @param position Position of the circle
      */
-    private void addCircleToMap(LatLng position) {
+    private void addCircleToMap(Landmark l, LatLng position) {
         // Compute the radius
         int radius = (int) (SIZE_CIRCLE * this.mapScreenRatio);
 
@@ -916,11 +1059,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         c.drawCircle(d / 2, d / 2, d / 2, p);
 
         // mapView is the GoogleMap
-        map.addGroundOverlay(new GroundOverlayOptions()
+        GroundOverlay groundOverlay = map.addGroundOverlay(new GroundOverlayOptions()
                         .image(BitmapDescriptorFactory.fromBitmap(bitmap))
                         .position(position, radius * 2, radius * 2)
                         .transparency(0.4f)
         );
+        l.setLandmarkMarkerCircle(groundOverlay);
     }
 
     /**
@@ -935,6 +1079,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Get the heading (from the map center to the landmark)
         double heading = getHeading(landmark);
 
+        //rotation of arrow according to bearing
+        heading = heading -(360-currentCameraPosition.bearing);
+
         // Compute the reverse heading (from the landmark to the map center)
         double reverseHeading = heading;
         int rotation = (int) (reverseHeading + 360) % 360;
@@ -943,6 +1090,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         } else {
             reverseHeading += 180;
         }
+
+        Log.i("HeadingBug", "Reverse Heading " + reverseHeading + " rotation " + rotation);
 
         // Get the correct drawable depending on the current map type
         BitmapDrawable bitmapDrawable;
@@ -984,13 +1133,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     DISTANCE_ARROW * this.mapScreenRatio, heading);
         }
         // Display the arrow
-        map.addMarker(new MarkerOptions()
-                        .anchor(0.5f, 0.5f)
+        Marker marker = map.addMarker(new MarkerOptions()
+                        .anchor(0.5f, 0.5f).flat(true)
                         .draggable(false)
                         .icon(BitmapDescriptorFactory.fromBitmap(rotatedArrow))
                         .position(arrowPositionNear)
                         .visible(true)
         );
+        landmark.setLandmarkMarkerArrow(marker);
     }
 
     /**
@@ -999,7 +1149,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * @param landmark Landmark this function refers to
      */
     private void addPointerToMap(Landmark landmark) {
-        // ...
+        // TODO implement
     }
 
     /**
@@ -1030,25 +1180,25 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             lat = landmark.getPosition().latitude;
         }
         switch (getHeadingID(landmark)) {
-            case Heading.NORTH_ID:
+            case Heading.TOP_ID:
                 pointAtScreenEdge = new LatLng(
                         map.getProjection().getVisibleRegion().farRight.latitude,
                         lng
                 );
                 break;
-            case Heading.EAST_ID:
+            case Heading.RIGHT_ID:
                 pointAtScreenEdge = new LatLng(
                         lat,
                         map.getProjection().getVisibleRegion().farRight.longitude
                 );
                 break;
-            case Heading.SOUTH_ID:
+            case Heading.BOTTOM_ID:
                 pointAtScreenEdge = new LatLng(
                         map.getProjection().getVisibleRegion().nearLeft.latitude,
                         lng
                 );
                 break;
-            case Heading.WEST_ID:
+            case Heading.LEFT_ID:
                 pointAtScreenEdge = new LatLng(
                         lat,
                         map.getProjection().getVisibleRegion().nearLeft.longitude
@@ -1079,15 +1229,17 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Display the wedge
         if (prefMapType == GoogleMap.MAP_TYPE_HYBRID ||
                 prefMapType == GoogleMap.MAP_TYPE_SATELLITE) {
-            map.addPolygon(new PolygonOptions()
+            Polygon polygon = map.addPolygon(new PolygonOptions()
                             .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
                             .strokeColor(Color.WHITE)
             );
+            landmark.setLandmarkMarkerPolygon(polygon);
         } else {
-            map.addPolygon(new PolygonOptions()
+            Polygon polygon = map.addPolygon(new PolygonOptions()
                             .add(landmark.getPosition(), wedgePoint1, wedgePoint2)
                             .strokeColor(Color.BLACK)
             );
+            landmark.setLandmarkMarkerPolygon(polygon);
         }
         Log.v(TAG, getString(R.string.log_map_wedge_added) + landmark.toString() + " " +
                 wedgePoint1.toString() + " " + wedgePoint2.toString());
@@ -1118,7 +1270,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         LatLng mapCenter = map.getCameraPosition().target;
 
         // Calculate and return the heading
-        return SphericalUtil.computeHeading(mapCenter, landmark.getPosition());
+        double heading =  (SphericalUtil.computeHeading(mapCenter, landmark.getPosition()) - currentCameraPosition.bearing) % 360;
+        //return SphericalUtil.computeHeading(mapCenter, landmark.getPosition());
+
+        if (heading < -180) {
+            return heading + 360;
+        } else if (heading > 180) {
+            return heading - 360;
+        } else {
+            return heading;
+        }
     }
 
     /**
@@ -1132,25 +1293,26 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double heading = getHeading(landmark);
 
         // Return the corresponding heading ID
-        if (heading <= Heading.SOUTH || heading > Heading.EAST) {
-            return Heading.SOUTH_ID;
-        } else if (heading <= Heading.WEST) {
-            return Heading.WEST_ID;
-        } else if (heading <= Heading.NORTH) {
-            return Heading.NORTH_ID;
+        if (heading <= Heading.BOTTOM || heading > Heading.RIGHT) {
+            return Heading.BOTTOM_ID;
+        } else if (heading <= Heading.LEFT) {
+            return Heading.LEFT_ID;
+        } else if (heading <= Heading.TOP) {
+            return Heading.TOP_ID;
         } else {
-            return Heading.EAST_ID;
+            return Heading.RIGHT_ID;
         }
     }
 
-    /**
+/*    *//**
      * Function to compute the shifted position of an off-screen landmark
      *
      * @param landmark Landmark to be shifted
      * @return Shifted position
-     */
-    private LatLng computeOffScreenPosition(Landmark landmark) {
-        // Get the landmark's heading ID
+     *//*
+    private LatLng computeOffScreenPositionOld(Landmark landmark) {
+
+        // Get the landmark's heading ID - south, east, north, west
         int headingID = getHeadingID(landmark);
 
         // Get the bounding box of the displayed map and the map center
@@ -1162,12 +1324,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double spanLng = bounds.northeast.longitude - bounds.southwest.longitude;
 
         // Get the min/max latitude values
-        double boundingLatMin = bounds.southwest.latitude + spanLat / 10;
-        double boundingLatMax = bounds.northeast.latitude - spanLat / 10;
+        double boundingLatMin = bounds.southwest.latitude + spanLat / VERTICAL_MAP_RATIO;
+        double boundingLatMax = bounds.northeast.latitude - spanLat / VERTICAL_MAP_RATIO;
 
         // Get the min/max longitude values
-        double boundingLngMin = bounds.southwest.longitude + spanLng / 10;
-        double boundingLngMax = bounds.northeast.longitude - spanLng / 10;
+        double boundingLngMin = bounds.southwest.longitude + spanLng / HORIZONTAL_MAP_RATIO;
+        double boundingLngMax = bounds.northeast.longitude - spanLng / HORIZONTAL_MAP_RATIO;
 
         // Simplify the names of the variables
         double latMapCenter = mapCenter.latitude;
@@ -1179,25 +1341,25 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double shiftedLat = 0;
         double shiftedLng = 0;
         switch (headingID) {
-            case Heading.SOUTH_ID:
+            case Heading.BOTTOM_ID:
                 // Compute the landmark's shifted position for the Southern heading
                 shiftedLat = boundingLatMin;
                 shiftedLng = lngMapCenter - (lngLM - lngMapCenter) / (latLM - latMapCenter) *
                         (latMapCenter - boundingLatMin);
                 break;
-            case Heading.WEST_ID:
+            case Heading.LEFT_ID:
                 // Compute the landmark's shifted position for the Western heading
                 shiftedLat = latMapCenter - (latLM - latMapCenter) / (lngLM - lngMapCenter) *
                         (lngMapCenter - boundingLngMin);
                 shiftedLng = boundingLngMin;
                 break;
-            case Heading.NORTH_ID:
+            case Heading.TOP_ID:
                 // Compute the landmark's shifted position for the Northern heading
                 shiftedLat = boundingLatMax;
                 shiftedLng = lngMapCenter + (lngLM - lngMapCenter) / (latLM - latMapCenter) *
                         (boundingLatMax - latMapCenter);
                 break;
-            case Heading.EAST_ID:
+            case Heading.RIGHT_ID:
                 // Compute the landmark's shifted position for the Eastern heading
                 shiftedLat = latMapCenter + (latLM - latMapCenter) / (lngLM - lngMapCenter) *
                         (boundingLngMax - lngMapCenter);
@@ -1216,12 +1378,106 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         Log.d(TAG, landmark.getTitle() + getString(R.string.log_landmark_shifted_location) +
                 shiftedPosition.toString());
         return shiftedPosition;
+    }*/
+
+    /**
+     * Function to compute the shifted position of an off-screen landmark
+     *
+     * @param landmark Landmark to be shifted
+     * @return Shifted position
+     */
+    private LatLng computeOffScreenPosition(Landmark landmark) {
+
+        // Get the landmark's heading ID - south, east, north, west
+        int headingID = getHeadingID(landmark);
+
+        // Get the bounding box of the displayed map and the map center
+        int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x; // Nexus5: 1080; width = x
+        int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y; // Nexus5: 1536: height = y
+
+        double span = 100;
+
+        // Get the min/max latitude values
+        double boundingXMin = span;
+        double boundingXMax = mapPixelWidth - span;
+
+        // Get the min/max longitude values
+        double boundingYMin = span;
+        double boundingYMax = mapPixelHeight - span;
+
+        // Simplify the names of the variables
+        double xMapCenter = mapPixelWidth / 2;
+        double yMapCenter = mapPixelHeight / 2;
+        double xLM = map.getProjection().toScreenLocation(landmark.getPosition()).x;
+        double yLM = map.getProjection().toScreenLocation(landmark.getPosition()).y;
+/*
+        Log.i("OffScreenComputation", "Landmark: " + landmark.getTitle() +
+                        "width: " + mapPixelWidth +
+                        "; height: " + mapPixelHeight +
+                        "; boundingXmin: " + boundingXMin +
+                        "; boundingXmax: " + boundingXMax +
+                        "; boundingYmin: " + boundingYMin +
+                        "; boundingYmax: " + boundingYMax +
+                        "; centerx: " + xMapCenter +
+                        "; centery: " + yMapCenter +
+                        "; landX: " + xLM +
+                        "; landY: " + yLM
+        );*/
+
+        // Start the computation
+        double shiftedX = 0;
+        double shiftedY = 0;
+        switch (headingID) {
+            case Heading.BOTTOM_ID:
+                // Compute the landmark's shifted position for the Southern heading
+                //Log.i("OffScreenComputation", "south");
+                shiftedY = boundingYMax;
+                shiftedX = xMapCenter - (xLM - xMapCenter) / (yLM - yMapCenter) *
+                        (yMapCenter - boundingYMax);
+                break;
+            case Heading.LEFT_ID:
+                // Compute the landmark's shifted position for the Western heading
+                //Log.i("OffScreenComputation", "west");
+                shiftedY = yMapCenter + (yLM - yMapCenter) / (xLM - xMapCenter) *
+                        (boundingXMin - xMapCenter);
+                shiftedX = boundingXMin;
+                break;
+            case Heading.TOP_ID:
+                // Compute the landmark's shifted position for the Northern heading
+                //Log.i("OffScreenComputation", "north");
+                shiftedY = boundingYMin;
+                shiftedX = xMapCenter + (xLM - xMapCenter) / (yLM - yMapCenter) *
+                        (boundingYMin - yMapCenter);
+                break;
+            case Heading.RIGHT_ID:
+                // Compute the landmark's shifted position for the Eastern heading
+                //Log.i("OffScreenComputation", "east");
+                shiftedY = yMapCenter - (yLM - yMapCenter) / (xLM - xMapCenter) *
+                        (xMapCenter - boundingXMax);
+                shiftedX = boundingXMax;
+                break;
+        }
+
+        //Log.i("OffScreenComputation", "shiftedX: " + shiftedX + "; shiftedY: " + shiftedY);
+
+        // Move the position to the allowed bounding box if necessary
+        if (shiftedX < boundingXMin) shiftedX = boundingXMin;
+        if (shiftedX > boundingXMax) shiftedX = boundingXMax;
+        if (shiftedY < boundingYMin) shiftedY = boundingYMin;
+        if (shiftedY > boundingYMax) shiftedY = boundingYMax;
+
+        // Return the landmark's shifted position
+        LatLng shiftedPosition = map.getProjection().fromScreenLocation(new Point((int) shiftedX, (int) shiftedY));
+        Log.d(TAG, landmark.getTitle() + getString(R.string.log_landmark_shifted_location) +
+                shiftedPosition.toString());
+        return shiftedPosition;
     }
 
     /**
      * Called when the overlays of the map have to be updated
      */
     private void updateMap() {
+/*
         // First clear the map
         map.clear();
         // Compute the map/screen ratio
@@ -1233,6 +1489,167 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         } else {
             displayLandmarks(prefDownload);
         }
+        */
+        // Compute the map/screen ratio
+        computeMapScreenRatio();
+        // Then redraw the landmarks
+        if (prefDownload && notDownloadedYet) {
+            GetJsonTask getJsonTask = new GetJsonTask();
+            getJsonTask.execute(prefURL);
+        } else {
+            recalculateLandmarks(prefDownload);
+        }
+    }
+
+    /**
+     * Recalculate how and where the landmarks are displayed.
+     * Case 1: previous = landmark empty > now = landmark on-screen > display
+     * Case 2: previous = landmark empty > now = landmark off-screen > display
+     * Case 3: previous = landmark on-screen > now = landmark on-screen > do nothing
+     * Case 4: previous = landmark off-screen > now = landmark on-screen > display landmark on screen
+     * Case 5: previous = landmark on-screen > now = landmark off-screen > make landmark a off-screen candidate
+     * Case 6: previous = landmark off-screen > now = landmark off-screen > make landmark a off-screen candidate
+     *
+     * @param useOnlineLandmarks
+     */
+    private void recalculateLandmarks(boolean useOnlineLandmarks) {
+        // Copy the list of landmarks
+        ArrayList<Landmark> allLandmarks = new ArrayList<Landmark>();
+        if (landmarks == null || !useOnlineLandmarks) {
+            // Store all pre-defined landmarks temporarily in another list
+            allLandmarks = (ArrayList<Landmark>) PRE_DEFINED_LANDMARKS.clone();
+        } else {
+            allLandmarks = (ArrayList<Landmark>) landmarks.clone();
+        }
+
+/*        // Get the bounding box of the displayed map and the map center
+        LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
+        VisibleRegion newbounds = map.getProjection().getVisibleRegion();
+        Log.i("MapRotationBug", "Bearing: " + map.getCameraPosition().bearing
+                + " Zoom: " + map.getCameraPosition().zoom
+                + " LatLng: " + map.getCameraPosition().target.toString()
+                + " Bounds: " + bounds.toString());
+        Log.i("MapRotationBug", "Visible region: " + newbounds);*/
+
+        ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
+
+        for (Landmark l : allLandmarks) {
+            //Log.i(TAG, l.getTitle() + "Screen locations: " + map.getProjection().toScreenLocation(l.getPosition()).toString());
+            mapContainsPoint(l);
+            // Check whether landmark is on- or off-screen at new camera position
+            switch (l.getCategoryStatusLandmark()) {
+                case R.integer.landmark_status_empty:
+                    if (mapContainsPoint(l)) {
+                        // Case 1: empty > on-screen
+                        // display on-screen landmarks
+                        if (((Object) l).getClass() == PointLandmark.class) {
+                            // Check if the landmark's position is already covered on the map
+                            if (isAreaFree(l.getPosition())) {
+                                coveredArea.add(l.getPosition());
+                                // Add point landmark map
+                                l.setCategoryStatusLandmark(R.integer.landmark_status_on_screen);
+                                addLandmarkToMap(l, MARKER_ON_SCREEN);
+                            }
+                        } else {
+                            // Display this regional landmark
+                            addLandmarkToMap(l, MARKER_ON_SCREEN);
+                        }
+                    } else {
+                        // Case 2: empty > off-screen
+                        // add to off-screen candidate
+                        if (getDistance(l) <= l.getReferenceRadius()) {
+                            // Map center is covered by reference radius of landmark
+                            offScreenCandidates.add(l);
+                        }
+                    }
+                    break;
+                case R.integer.landmark_status_on_screen:
+                    if (mapContainsPoint(l)) {
+                        // Case 3: on-screen > on-screen
+                        // check if zoomed
+                        if (currentCameraPosition.zoom != previousCameraPosition.zoom) {
+                            if (l.getLandmarkMarkerCircle() != null)
+                                l.getLandmarkMarkerCircle().remove();
+                            addCircleToMap(l, l.getPosition());
+                        }
+                    } else {
+                        // Case 4: on-screen > off-screen
+                        // remove on-screen landmark and add to off-screen candidate
+                        removeLandmarkFromMap(l);
+                        l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
+                        if (getDistance(l) <= l.getReferenceRadius()) {
+                            // Map center is covered by reference radius of landmark
+                            offScreenCandidates.add(l);
+                        }
+                    }
+                    break;
+                case R.integer.landmark_status_off_screen:
+                    if (mapContainsPoint(l)) {
+                        // Case 5: off-screen > on-screen
+                        // remove off-screen
+                        removeLandmarkFromMap(l);
+                        // display on-screen
+                        if (((Object) l).getClass() == PointLandmark.class) {
+                            // Check if the landmark's position is already covered on the map
+                            if (isAreaFree(l.getPosition())) {
+                                coveredArea.add(l.getPosition());
+                                // Add point landmark map
+                                l.setCategoryStatusLandmark(R.integer.landmark_status_on_screen);
+                                addLandmarkToMap(l, MARKER_ON_SCREEN);
+                            }
+                        } else {
+                            // Display this regional landmark
+                            addLandmarkToMap(l, MARKER_ON_SCREEN);
+                        }
+                    } else {
+                        // Case 6: off-screen > off-screen
+                        // remove landmark and add to off-screen candidate
+                        removeLandmarkFromMap(l);
+                        if (getDistance(l) <= l.getReferenceRadius()) {
+                            // Map center is covered by reference radius of landmark
+                            offScreenCandidates.add(l);
+                        }
+                    }
+                    break;
+            }
+        }
+
+        if (offScreenCandidates.size() > 0) {
+            // Remove redundant landmarks based on their headings and distances
+            ArrayList<Landmark> filteredCandidates = filterLandmarks(offScreenCandidates);
+
+            // Display the filtered off-screen landmarks
+            for (int i = 0; i < filteredCandidates.size(); i++) {
+                Landmark l = filteredCandidates.get(i);
+                if (map.getClass() == GoogleMap.class) {
+                    l.setOffScreenPosition(computeOffScreenPosition(l));
+                }
+                // Check if the landmark's position is already covered on the map
+                if (isAreaFree(l.getOffScreenPosition())) {
+                    coveredArea.add(l.getOffScreenPosition());
+                    if (i <= filteredCandidates.size() / 2) {
+                        l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
+                        addLandmarkToMap(l, MARKER_OFF_SCREEN_NEAR);
+                    } else {
+                        l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
+                        addLandmarkToMap(l, MARKER_OFF_SCREEN_FAR);
+                    }
+                } else {
+                    //TODO implemente funktion to shift landmark, if area is already covered
+                }
+            }
+        }
+    }
+
+    private boolean mapContainsPoint(Landmark l) {
+        int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x; // Nexus5: 1080
+        int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y; // Nexus5: 1536
+
+        Point lPos = map.getProjection().toScreenLocation(l.getPosition());
+        if (lPos.x >= 0 && lPos.x <= mapPixelWidth && lPos.y >= 0 && lPos.y <= mapPixelHeight) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -1269,17 +1686,89 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Called when the map following preference has been changed
      */
-    private void updateMapFollowing() {
-        if (prefMapFollow) {
+    private void updateMapRotatingAndFollowing() {
+        if (prefMapFollow && prefCompassTop) {
+            setMapFollowingListenerEnabled(true, true);
+            setOnTouchListenerEnabled(true);
+            Log.i(TAG, "updateMapRotiationandfollowing: true true");
+        } else if (prefMapFollow && !prefCompassTop) {
+            setMapFollowingListenerEnabled(true, false);
+            setOnTouchListenerEnabled(true);
+            Log.i(TAG, "updateMapRotiationandfollowing: true false");
+        } else if (!prefMapFollow && prefCompassTop) {
+            setMapFollowingListenerEnabled(false, true);
+            setOnTouchListenerEnabled(false);
+            Log.i(TAG, "updateMapRotiationandfollowing: false true");
+        } else {
+            setMapFollowingListenerEnabled(false, false);
+            setOnTouchListenerEnabled(false);
+            Log.i(TAG, "updateMapRotiationandfollowing: false false");
+        }
+    }
+
+    private void setMapFollowingListenerEnabled(boolean mapFollowing, boolean compassTop) {
+        if (mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 14);
+                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                }
+            });
+            map.getUiSettings().setMyLocationButtonEnabled(false);
+        } else if(mapFollowing && !compassTop) {
+            map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, currentCameraPosition.zoom);
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                }
+            });
+            map.getUiSettings().setMyLocationButtonEnabled(false);
+        } else if (!mapFollowing && compassTop) {
+            map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                }
+            });
+        } else if (!mapFollowing && !compassTop) {
+            map.setOnMyLocationChangeListener(null);
+        }
+    }
+
+    private void setOnTouchListenerEnabled(boolean b) {
+        if (b) {
+            mapTouchLayer.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    setMapFollowingListenerEnabled(false, prefCompassTop);
+                    map.getUiSettings().setMyLocationButtonEnabled(true);
+                    return false; // Pass on the touch to the map or shadow layer.
                 }
             });
         } else {
-            map.setOnMyLocationChangeListener(null);
+            mapTouchLayer.setOnTouchListener(null);
         }
+    }
+
+    /**
+     * Called when the map rotation preference has changed
+     */
+    private void updateMapRotating() {
+        // TODO implement
+        SensorEventListener sensorEvent = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent sensorEvent) {
+
+            }
+
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int i) {
+
+            }
+        };
     }
 
     /**
@@ -1295,47 +1784,83 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private ArrayList<Landmark> filterLandmarks(ArrayList<Landmark> unfilteredLandmarks) {
         // Store the landmarks for each heading
-        Landmark north = null;
-        Landmark east = null;
-        Landmark south = null;
-        Landmark west = null;
+        ArrayList<Landmark> top = new ArrayList<Landmark>();
+        ArrayList<Landmark> right = new ArrayList<Landmark>();
+        ArrayList<Landmark> bottom = new ArrayList<Landmark>();
+        ArrayList<Landmark> left = new ArrayList<Landmark>();
 
         // Iterate through all landmarks
         for (Landmark l : unfilteredLandmarks) {
             int headingID = getHeadingID(l);
-            if (headingID == Heading.EAST_ID && (east == null || (east != null &&
-                    l.getReferenceRadius() > east.getReferenceRadius()))) {
-                east = l;
-            } else if (headingID == Heading.SOUTH_ID && (south == null || (south != null &&
-                    l.getReferenceRadius() > south.getReferenceRadius()))) {
-                south = l;
-            } else if (headingID == Heading.WEST_ID && (west == null || (west != null &&
-                    l.getReferenceRadius() > west.getReferenceRadius()))) {
-                west = l;
-            } else if (north == null || (north != null &&
-                    l.getReferenceRadius() > north.getReferenceRadius())) {
-                north = l;
+            if (headingID == Heading.RIGHT_ID) {
+                right.add(l);
+            } else if (headingID == Heading.BOTTOM_ID) {
+                bottom.add(l);
+            } else if (headingID == Heading.LEFT_ID) {
+                left.add(l);
+            } else if (headingID == Heading.TOP_ID) {
+                top.add(l);
             }
         }
 
-        // Return the filtered landmarks
+        //Sorting Arraylists in descending order
+        Collections.sort(top, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
+        Collections.sort(right, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
+        Collections.sort(bottom, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
+        Collections.sort(left, new Comparator<Landmark>() {
+            @Override
+            public int compare(Landmark lhs, Landmark rhs) {
+                return (int) (rhs.getReferenceRadius() - lhs.getReferenceRadius());
+            }
+        });
+
         ArrayList<Landmark> filteredLandmarks = new ArrayList<Landmark>();
-        if (north != null) {
-            north.setDistance(getDistance(north));
-            filteredLandmarks.add(north);
+
+        Log.i(TAG, "Number of Landmarks per edge top, right, bottom, left: " + top.size() + ", " + right.size() + ", " + bottom.size() + ", " + left.size());
+
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_TOP; i++) {
+            if (i < top.size()) {
+                top.get(i).setDistance(getDistance(top.get(i)));
+                filteredLandmarks.add(top.get(i));
+            }
         }
-        if (east != null) {
-            east.setDistance(getDistance(east));
-            filteredLandmarks.add(east);
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_RIGHT; i++) {
+            if (i < right.size()) {
+                right.get(i).setDistance(getDistance(right.get(i)));
+                filteredLandmarks.add(right.get(i));
+            }
         }
-        if (south != null) {
-            south.setDistance(getDistance(south));
-            filteredLandmarks.add(south);
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_BOTTOM; i++) {
+            if (i < bottom.size()) {
+                bottom.get(i).setDistance(getDistance(bottom.get(i)));
+                filteredLandmarks.add(bottom.get(i));
+            }
         }
-        if (west != null) {
-            west.setDistance(getDistance(west));
-            filteredLandmarks.add(west);
+        for (int i = 0; i<OFF_SCREEN_LANDMARKS_LEFT; i++) {
+            if (i < left.size()) {
+                left.get(i).setDistance(getDistance(left.get(i)));
+                filteredLandmarks.add(left.get(i));
+            }
         }
+
         if (filteredLandmarks.size() == 0) {
             return null;
         } else {

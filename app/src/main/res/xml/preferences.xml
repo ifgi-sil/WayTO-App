@@ -10,6 +10,16 @@
             android:title="@string/pref_title_map_follow"
             android:defaultValue="false" />
 
+        <SwitchPreference
+            android:key="pref_key_compass_top"
+            android:title="@string/pref_title_compass_top"
+            android:defaultValue="false" />
+
+        <SwitchPreference
+            android:key="pref_key_map_compass"
+            android:title="@string/pref_title_map_compass"
+            android:defaultValue="false" />
+
         <ListPreference
             android:key="pref_key_map_type"
             android:title="@string/pref_title_map_type"
