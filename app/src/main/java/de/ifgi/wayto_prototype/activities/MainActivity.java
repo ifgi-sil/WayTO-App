@@ -1682,19 +1682,19 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         if (prefMapFollow && prefCompassTop) {
             setMapFollowingListenerEnabled(true, true);
             setOnTouchListenerEnabled(true);
-            Log.i("updateMapRotiationandfollowing: ", "true true");
+            Log.i(TAG, "updateMapRotiationandfollowing: true true");
         } else if (prefMapFollow && !prefCompassTop) {
             setMapFollowingListenerEnabled(true, false);
             setOnTouchListenerEnabled(true);
-            Log.i("updateMapRotiationandfollowing: ", "true false");
+            Log.i(TAG, "updateMapRotiationandfollowing: true false");
         } else if (!prefMapFollow && prefCompassTop) {
             setMapFollowingListenerEnabled(false, true);
             setOnTouchListenerEnabled(false);
-            Log.i("updateMapRotiationandfollowing: ", "false true");
+            Log.i(TAG, "updateMapRotiationandfollowing: false true");
         } else {
             setMapFollowingListenerEnabled(false, false);
             setOnTouchListenerEnabled(false);
-            Log.i("updateMapRotiationandfollowing: ", "false false");
+            Log.i(TAG, "updateMapRotiationandfollowing: false false");
         }
     }
 
@@ -1707,6 +1707,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
                 }
             });
+            map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if(mapFollowing && !compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
@@ -1715,6 +1716,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
                 }
             });
+            map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (!mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
