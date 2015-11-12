@@ -1036,6 +1036,9 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         if (coveredArea.contains(l.getPosition())) {
             coveredArea.remove(coveredArea.indexOf(l.getPosition()));
         }
+        if (coveredArea.contains(l.getOffScreenPosition())) {
+            coveredArea.remove(coveredArea.indexOf(l.getOffScreenPosition()));
+        }
     }
 
     /**
@@ -1623,7 +1626,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                 }
                 // Check if the landmark's position is already covered on the map
                 if (isAreaFree(l.getOffScreenPosition())) {
-                    coveredArea.add(l.getPosition());
+                    coveredArea.add(l.getOffScreenPosition());
                     if (i <= filteredCandidates.size() / 2) {
                         l.setCategoryStatusLandmark(R.integer.landmark_status_off_screen);
                         addLandmarkToMap(l, MARKER_OFF_SCREEN_NEAR);
