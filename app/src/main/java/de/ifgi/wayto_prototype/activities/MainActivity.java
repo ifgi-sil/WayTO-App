@@ -42,6 +42,8 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
 
@@ -545,6 +547,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.setOnMapClickListener(this);
                 // Angela set rotation false
                 map.getUiSettings().setRotateGesturesEnabled(true);
+                /*Polyline line = map.addPolyline(new PolylineOptions()
+                        .add(new LatLng(51.954611, 7.624338),
+                                new LatLng(51.951483, 7.627567))
+                        .geodesic(true));*/
             } else {
                 // Cannot create map
                 String message = getString(R.string.log_map_cannot_create_map);
