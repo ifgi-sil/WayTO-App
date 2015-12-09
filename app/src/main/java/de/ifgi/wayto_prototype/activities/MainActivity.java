@@ -369,6 +369,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
+    /**
+     *
+     * @return
+     */
+    public CameraPosition getCurrentCameraPosition () {
+        return this.currentCameraPosition;
+    }
+
     private boolean cameraChangedSignificantly(CameraPosition cameraPosition) {
         if (currentCameraPosition == null) {
             return true;
