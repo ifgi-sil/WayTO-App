@@ -15,6 +15,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.location.Location;
+import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -47,12 +48,12 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
 
-import org.apache.http.HttpResponse;
+/*import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;*/
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -79,7 +80,7 @@ import de.ifgi.wayto_prototype.map.Heading;
  * @author Marius Runde, Heinrich Löwen
  */
 public class MainActivity extends FragmentActivity implements GoogleMap.OnCameraChangeListener,
-        GoogleMap.OnMarkerClickListener, GoogleMap.OnMapClickListener {
+        GoogleMap.OnMarkerClickListener, GoogleMap.OnMapClickListener, LocationListener{
 
     /**
      * Tag for the logger
@@ -275,6 +276,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * previous camera position
      */
     private CameraPosition previousCameraPosition;
+    /**
+     * Initial Zoom to Position and Loading of Landmarks
+     */
+    private boolean initialCameraChange = true;
 
     /**
      *
@@ -360,6 +365,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 " at bearing: " + cameraPosition.bearing +
                 " at zoom level: " + cameraPosition.zoom +
                 " at time: " + getCurrentTime());
+        if (initialCameraChange) {
+            Log.i(TAG, "Initial camera change");
+            initialCameraChange = false;
+            updateMap();
+        }
         if (cameraChangedSignificantly(cameraPosition)) {
             if (currentCameraPosition != null) {
                 previousCameraPosition = currentCameraPosition;
@@ -724,6 +734,26 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         }
     }
 
+    @Override
+    public void onLocationChanged(Location location) {
+
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
+
+    }
+
     /**
      * This is a class to get the JSON file asynchronously from the given URL.
      *
@@ -768,7 +798,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
 
         @Override
         protected JSONArray doInBackground(String... url) {
-            // Get the data from the URL
+/*            // Get the data from the URL
             String output = "";
             HttpClient httpclient = new DefaultHttpClient();
             HttpResponse response;
@@ -798,7 +828,8 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                 Log.e(LOG, "Could not convert output to JSONObject. This is the error message: "
                         + e.getMessage());
                 return null;
-            }
+            }*/
+            return null;
         }
 
         @Override
@@ -1491,26 +1522,15 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      * Called when the overlays of the map have to be updated
      */
     private void updateMap() {
-/*
-        // First clear the map
-        map.clear();
         // Compute the map/screen ratio
         computeMapScreenRatio();
         // Then redraw the landmarks
         if (prefDownload && notDownloadedYet) {
+            Log.i(TAG, "Update map if true");
             GetJsonTask getJsonTask = new GetJsonTask();
             getJsonTask.execute(prefURL);
         } else {
-            displayLandmarks(prefDownload);
-        }
-        */
-        // Compute the map/screen ratio
-        computeMapScreenRatio();
-        // Then redraw the landmarks
-        if (prefDownload && notDownloadedYet) {
-            GetJsonTask getJsonTask = new GetJsonTask();
-            getJsonTask.execute(prefURL);
-        } else {
+            Log.i(TAG, "Update map if false");
             recalculateLandmarks(prefDownload);
         }
     }
@@ -1725,8 +1745,12 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                    if (location.getBearing()==0.0) {
+                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
+                    } else {
+                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                    }
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
