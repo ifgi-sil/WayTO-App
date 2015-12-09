@@ -1746,9 +1746,15 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                 @Override
                 public void onMyLocationChange(Location location) {
                     if (location.getBearing()==0.0) {
-                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
+                        //TODO do something
+                        //animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
                     } else {
                         animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                        logger += "Location changed to position: " + "(" + location.getLatitude() + "," + location.getLongitude() + ")" +
+                                " at bearing: " + location.getBearing() +
+                                " current bearing: " + currentCameraPosition.bearing +
+                                " at zoom level: " + currentCameraPosition.zoom +
+                                " at time: " + getCurrentTime() + "\n";
                     }
                     Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
@@ -1765,10 +1771,18 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (!mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
-                @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                    if (location.getBearing()==0.0) {
+                        //TODO do something
+                    } else {
+                        animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                        logger += "False Location changed to position: " + "(" + location.getLatitude() + "," + location.getLongitude() + ")" +
+                                " at bearing: " + location.getBearing() +
+                                " current bearing: " + currentCameraPosition.bearing +
+                                " at zoom level: " + currentCameraPosition.zoom +
+                                " at time: " + getCurrentTime() + "\n";
+                    }
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
         } else if (!mapFollowing && !compassTop) {
