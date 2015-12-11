@@ -11,9 +11,6 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -42,9 +39,16 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polygon;
 import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.gms.maps.model.VisibleRegion;
 import com.google.maps.android.SphericalUtil;
 
+/*import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;*/
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
@@ -55,16 +59,29 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 
 import de.ifgi.wayto_prototype.R;
 import de.ifgi.wayto_prototype.demo.LandmarkCollection;
+import de.ifgi.wayto_prototype.demo.PathSegmentCollection;
+import de.ifgi.wayto_prototype.demo.Segment;
+import de.ifgi.wayto_prototype.demo.Waypoint;
+import de.ifgi.wayto_prototype.demo.WaypointCollection;
+import de.ifgi.wayto_prototype.directions.DirectionsJSONParser;
 import de.ifgi.wayto_prototype.landmarks.Landmark;
 import de.ifgi.wayto_prototype.landmarks.PointLandmark;
 import de.ifgi.wayto_prototype.landmarks.RegionalLandmark;
@@ -242,6 +259,14 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private final ArrayList<Landmark> PRE_DEFINED_LANDMARKS = LandmarkCollection.initLandmarks();
     /**
+     * List of pre-defined waypoints
+     */
+    private final ArrayList<Waypoint> PRE_DEFINED_WAYPOINTS = WaypointCollection.initWaypoints();
+    /**
+     * List of pre-defined path segments
+     */
+    private final ArrayList<Segment> PRE_DEFINED_PATHSEGMENTS = PathSegmentCollection.initSegmentPoints();
+    /**
      * List of downloaded landmarks
      */
     private ArrayList<Landmark> landmarks = null;
@@ -273,6 +298,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * previous camera position
      */
     private CameraPosition previousCameraPosition;
+    /**
+     * Initial Zoom to Position and Loading of Landmarks
+     */
+    private boolean initialCameraChange = true;
 
     /**
      *
@@ -358,6 +387,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 " at bearing: " + cameraPosition.bearing +
                 " at zoom level: " + cameraPosition.zoom +
                 " at time: " + getCurrentTime());
+        if (initialCameraChange) {
+            Log.i(TAG, "Initial camera change");
+            initialCameraChange = false;
+            updateMap();
+        }
         if (cameraChangedSignificantly(cameraPosition)) {
             if (currentCameraPosition != null) {
                 previousCameraPosition = currentCameraPosition;
@@ -367,20 +401,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
-    private boolean cameraChangedSignificantly(CameraPosition cameraPosition) {
-        if (currentCameraPosition == null) {
-            return true;
-        } else {
-            if (Math.abs(currentCameraPosition.target.latitude - cameraPosition.target.latitude) > POSITION_CHANGED_THRESHOLD) {
-                return true;
-            } else if (Math.abs(currentCameraPosition.target.longitude - cameraPosition.target.longitude) > POSITION_CHANGED_THRESHOLD) {
-                return true;
-            } else if (Math.abs(currentCameraPosition.bearing - cameraPosition.bearing) > BEARING_CHANGED_THRESHOLD) {
-                return true;
-            } else {
-                return false;
-            }
-        }
+    /**
+     *
+     * @return
+     */
+    public CameraPosition getCurrentCameraPosition () {
+        return this.currentCameraPosition;
     }
 
     @Override
@@ -416,6 +442,27 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         logger += "Clicked on map at time: " + getCurrentTime() + "\n";
         // Set the lasted clicked marker to null, so the info window will be shown again
         lastOpened = null;
+    }
+
+    /**
+     * Check if the cameraPosition changed significantly.
+     * @param cameraPosition new camera position
+     * @return boolean
+     */
+    private boolean cameraChangedSignificantly(CameraPosition cameraPosition) {
+        if (currentCameraPosition == null) {
+            return true;
+        } else {
+            if (Math.abs(currentCameraPosition.target.latitude - cameraPosition.target.latitude) > POSITION_CHANGED_THRESHOLD) {
+                return true;
+            } else if (Math.abs(currentCameraPosition.target.longitude - cameraPosition.target.longitude) > POSITION_CHANGED_THRESHOLD) {
+                return true;
+            } else if (Math.abs(currentCameraPosition.bearing - cameraPosition.bearing) > BEARING_CHANGED_THRESHOLD) {
+                return true;
+            } else {
+                return false;
+            }
+        }
     }
 
     /**
@@ -545,6 +592,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 map.setOnMapClickListener(this);
                 // Angela set rotation false
                 map.getUiSettings().setRotateGesturesEnabled(true);
+                /*Polyline line = map.addPolyline(new PolylineOptions()
+                        .add(new LatLng(51.954611, 7.624338),
+                                new LatLng(51.951483, 7.627567))
+                        .geodesic(true));*/
             } else {
                 // Cannot create map
                 String message = getString(R.string.log_map_cannot_create_map);
@@ -561,7 +612,91 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             Log.e(TAG, message);
         }
+
+        showRoute();
     }
+
+    private void showRoute() {
+        LatLng origin = new LatLng(51.954611,7.624338);
+        LatLng dest = new LatLng(51.951483,7.627567);
+
+/*
+ * use to show route from origin to destination
+        //Use the google directions api to request a route. Here we access a route for walking form the specified origin to the destination
+        String url = getDirectionsUrl(origin, dest);
+        Log.d(TAG, "Route url" + url);
+        DownloadRoute routeFile = new DownloadRoute();
+        routeFile.execute(url);
+*/
+
+/*
+ * use to show all routes for segments
+        ArrayList<Waypoint> waypoints = (ArrayList<Waypoint>) PRE_DEFINED_WAYPOINTS.clone();
+        String url;
+
+        for (int i = 1; i<waypoints.size(); i++) {
+            if (i==6 || i==7) {
+                url = getDirectionsUrl(waypoints.get(i).getPosition(), waypoints.get(i-1).getPosition());
+                Log.d(TAG, "Route url" + url);
+                DownloadRoute routeFile = new DownloadRoute();
+                routeFile.execute(url);
+            } else {
+                url = getDirectionsUrl(waypoints.get(i - 1).getPosition(), waypoints.get(i).getPosition());
+                Log.d(TAG, "Route url" + url);
+                DownloadRoute routeFile = new DownloadRoute();
+                routeFile.execute(url);
+            }
+        }
+*/
+
+        ArrayList<Segment> pathSegments = (ArrayList<Segment>) PRE_DEFINED_PATHSEGMENTS.clone();
+
+        // Traversing through all the routes
+        for(int i=0;i<pathSegments.size();i++){
+            ArrayList<LatLng> points = null;
+            PolylineOptions lineOptions = null;
+            MarkerOptions markerOptions = new MarkerOptions();
+
+            points = pathSegments.get(i).getSegmentPoints();
+            lineOptions = new PolylineOptions();
+
+            // Adding all the points in the route to LineOptions
+            lineOptions.addAll(points);
+            lineOptions.width(5);
+            lineOptions.color(Color.RED);
+
+            // Drawing polyline in the Google Map for the i-th route
+            map.addPolyline(lineOptions);
+        }
+
+
+    }
+
+    private String getDirectionsUrl(LatLng origin,LatLng dest){
+        // Origin of route
+        String str_origin = "origin="+origin.latitude+","+origin.longitude;
+
+        // Destination of route
+        String str_dest = "destination="+dest.latitude+","+dest.longitude;
+
+        // Sensor enabled
+        String sensor = "sensor=false";
+
+        // Parameter for the mode of travelling
+        String travellingMode = "mode=walking";
+
+        // Building the parameters to the web service
+        String parameters = str_origin+"&"+str_dest+"&"+sensor+"&"+travellingMode;
+
+        // Output format
+        String output = "json";
+
+        // Building the url to the web service
+        String url = "https://maps.googleapis.com/maps/api/directions/"+output+"?"+parameters;
+
+        return url;
+    }
+
 
     private void computeMapScreenRatio() {
         // Get the map bounds
@@ -603,6 +738,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     /**
      * Display the landmarks on the map
+     * This method is deprecated. Use recalculateLandmarks() instead.
      *
      * @param useOnlineLandmarks Indicates whether the pre-defined or downloaded landmarks shall be
      *                           used
@@ -623,29 +759,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Get the bounding box of the displayed map and the map center
         LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
         LatLng mapCenter = new LatLng(bounds.getCenter().latitude, bounds.getCenter().longitude);
-/*
-Currently not used, because only relevant for on screen landmarks that lie in the border where off-screen landmarks are displayed.
-New solution: use bounds of the map and only display a landmark as off-screen landmark, when is not visible on map any more.
-
-        // Make up a inner frame, where the off-screen landmarks shall be displayed.
-        // The center of the off-screen landmarks will be at a tenth of the display/map width
-
-        // Calculate the latitude and longitude spans
-        double spanLat = bounds.northeast.latitude - bounds.southwest.latitude;
-        double spanLng = bounds.northeast.longitude - bounds.southwest.longitude;
-
-        // Get the min/max latitude values
-        double boundingLatMin = bounds.southwest.latitude + spanLat / 10;
-        double boundingLatMax = bounds.northeast.latitude - spanLat / 10;
-
-        // Get the min/max longitude values
-        double boundingLngMin = bounds.southwest.longitude + spanLng / 10;
-        double boundingLngMax = bounds.northeast.longitude - spanLng / 10;
-
-        // Get the bounding box where the markers shall be displayed
-        LatLngBounds markerBounds = new LatLngBounds(new LatLng(boundingLatMin, boundingLngMin),
-                new LatLng(boundingLatMax, boundingLngMax));
-*/
 
         // Get all on-screen candidate landmarks and display the regional ones
         ArrayList<Landmark> onScreenCandidates = new ArrayList<Landmark>();
@@ -705,6 +818,7 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     }
                 } else {
                     //TODO implemente funktion to shift landmark, if area is already covered
+
                 }
             }
         }
@@ -872,6 +986,140 @@ New solution: use bounds of the map and only display a landmark as off-screen la
                     displayLandmarks(true);
                 }
             }
+        }
+    }
+
+    /**
+     * A class to download a specified route asynchronous and display it on the map.
+     */
+    private class DownloadRoute extends AsyncTask<String, Void, String>{
+
+        @Override
+        protected String doInBackground(String... url) {
+            // For storing data from web service
+            String data = "";
+
+            try{
+                // Fetching the data from web service
+                data = downloadUrl(url[0]);
+            }catch(Exception e){
+                Log.d("Background Task",e.toString());
+            }
+            return data;
+        }
+
+
+        // Executes in UI thread, after the execution of
+        // doInBackground()
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+
+            ParserTask parserTask = new ParserTask();
+
+            // Invokes the thread for parsing the JSON data
+            parserTask.execute(result);
+        }
+
+        private String downloadUrl(String strUrl) throws IOException{
+            String data = "";
+            InputStream iStream = null;
+            HttpURLConnection urlConnection = null;
+            try{
+                URL url = new URL(strUrl);
+
+                // Creating an http connection to communicate with url
+                urlConnection = (HttpURLConnection) url.openConnection();
+
+                // Connecting to url
+                urlConnection.connect();
+
+                // Reading data from url
+                iStream = urlConnection.getInputStream();
+
+                BufferedReader br = new BufferedReader(new InputStreamReader(iStream));
+
+                StringBuffer sb = new StringBuffer();
+
+                String line = "";
+                while( ( line = br.readLine()) != null){
+                    sb.append(line);
+                }
+
+                data = sb.toString();
+
+                br.close();
+
+            }catch(Exception e){
+                Log.d(TAG, "Exception while downloading url" + e.toString());
+            }finally{
+                iStream.close();
+                urlConnection.disconnect();
+            }
+            return data;
+        }
+    }
+
+    /**
+     * A class to parse the Google Places in JSON format
+     */
+    private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String,String>>> >{
+
+        // Parsing the data in non-ui thread
+        @Override
+        protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
+
+            JSONObject jObject;
+            List<List<HashMap<String, String>>> routes = null;
+
+            try{
+                jObject = new JSONObject(jsonData[0]);
+                DirectionsJSONParser parser = new DirectionsJSONParser();
+
+                // Starts parsing data
+                routes = parser.parse(jObject);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            Log.i(TAG, "JSON Routes" + routes);
+            return routes;
+        }
+
+        // Executes in UI thread, after the parsing process
+        @Override
+        protected void onPostExecute(List<List<HashMap<String, String>>> result) {
+            ArrayList<LatLng> points = null;
+            PolylineOptions lineOptions = null;
+            MarkerOptions markerOptions = new MarkerOptions();
+
+            // Traversing through all the routes
+            for(int i=0;i<result.size();i++){
+                points = new ArrayList<LatLng>();
+                lineOptions = new PolylineOptions();
+
+                // Fetching i-th route
+                List<HashMap<String, String>> path = result.get(i);
+
+                // Fetching all the points in i-th route
+                for(int j=0;j<path.size();j++){
+                    HashMap<String,String> point = path.get(j);
+
+                    double lat = Double.parseDouble(point.get("lat"));
+                    double lng = Double.parseDouble(point.get("lng"));
+                    LatLng position = new LatLng(lat, lng);
+
+                    points.add(position);
+                }
+
+                // Adding all the points in the route to LineOptions
+                lineOptions.addAll(points);
+                lineOptions.width(5);
+                lineOptions.color(Color.RED);
+            }
+
+            // Drawing polyline in the Google Map for the i-th route
+            Log.i(TAG, "JSON Routes points" + points);
+            map.addPolyline(lineOptions);
         }
     }
 
@@ -1410,19 +1658,6 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         double yMapCenter = mapPixelHeight / 2;
         double xLM = map.getProjection().toScreenLocation(landmark.getPosition()).x;
         double yLM = map.getProjection().toScreenLocation(landmark.getPosition()).y;
-/*
-        Log.i("OffScreenComputation", "Landmark: " + landmark.getTitle() +
-                        "width: " + mapPixelWidth +
-                        "; height: " + mapPixelHeight +
-                        "; boundingXmin: " + boundingXMin +
-                        "; boundingXmax: " + boundingXMax +
-                        "; boundingYmin: " + boundingYMin +
-                        "; boundingYmax: " + boundingYMax +
-                        "; centerx: " + xMapCenter +
-                        "; centery: " + yMapCenter +
-                        "; landX: " + xLM +
-                        "; landY: " + yLM
-        );*/
 
         // Start the computation
         double shiftedX = 0;
@@ -1477,26 +1712,15 @@ New solution: use bounds of the map and only display a landmark as off-screen la
      * Called when the overlays of the map have to be updated
      */
     private void updateMap() {
-/*
-        // First clear the map
-        map.clear();
         // Compute the map/screen ratio
         computeMapScreenRatio();
         // Then redraw the landmarks
         if (prefDownload && notDownloadedYet) {
+            Log.i(TAG, "Update map if true");
             GetJsonTask getJsonTask = new GetJsonTask();
             getJsonTask.execute(prefURL);
         } else {
-            displayLandmarks(prefDownload);
-        }
-        */
-        // Compute the map/screen ratio
-        computeMapScreenRatio();
-        // Then redraw the landmarks
-        if (prefDownload && notDownloadedYet) {
-            GetJsonTask getJsonTask = new GetJsonTask();
-            getJsonTask.execute(prefURL);
-        } else {
+            Log.i(TAG, "Update map if false");
             recalculateLandmarks(prefDownload);
         }
     }
@@ -1521,15 +1745,6 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         } else {
             allLandmarks = (ArrayList<Landmark>) landmarks.clone();
         }
-
-/*        // Get the bounding box of the displayed map and the map center
-        LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
-        VisibleRegion newbounds = map.getProjection().getVisibleRegion();
-        Log.i("MapRotationBug", "Bearing: " + map.getCameraPosition().bearing
-                + " Zoom: " + map.getCameraPosition().zoom
-                + " LatLng: " + map.getCameraPosition().target.toString()
-                + " Bounds: " + bounds.toString());
-        Log.i("MapRotationBug", "Visible region: " + newbounds);*/
 
         ArrayList<Landmark> offScreenCandidates = new ArrayList<Landmark>();
 
@@ -1711,8 +1926,18 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                    if (location.getBearing()==0.0) {
+                        //TODO do something
+                        //animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
+                    } else {
+                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                        logger += "Location changed to position: " + "(" + location.getLatitude() + "," + location.getLongitude() + ")" +
+                                " at bearing: " + location.getBearing() +
+                                " current bearing: " + currentCameraPosition.bearing +
+                                " at zoom level: " + currentCameraPosition.zoom +
+                                " at time: " + getCurrentTime() + "\n";
+                    }
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
@@ -1727,10 +1952,18 @@ New solution: use bounds of the map and only display a landmark as off-screen la
             map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (!mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
-                @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                    if (location.getBearing()==0.0) {
+                        //TODO do something
+                    } else {
+                        animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                        logger += "False Location changed to position: " + "(" + location.getLatitude() + "," + location.getLongitude() + ")" +
+                                " at bearing: " + location.getBearing() +
+                                " current bearing: " + currentCameraPosition.bearing +
+                                " at zoom level: " + currentCameraPosition.zoom +
+                                " at time: " + getCurrentTime() + "\n";
+                    }
+                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
         } else if (!mapFollowing && !compassTop) {
@@ -1751,24 +1984,6 @@ New solution: use bounds of the map and only display a landmark as off-screen la
         } else {
             mapTouchLayer.setOnTouchListener(null);
         }
-    }
-
-    /**
-     * Called when the map rotation preference has changed
-     */
-    private void updateMapRotating() {
-        // TODO implement
-        SensorEventListener sensorEvent = new SensorEventListener() {
-            @Override
-            public void onSensorChanged(SensorEvent sensorEvent) {
-
-            }
-
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int i) {
-
-            }
-        };
     }
 
     /**

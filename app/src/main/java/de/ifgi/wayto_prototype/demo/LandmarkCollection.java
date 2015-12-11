@@ -69,29 +69,29 @@ public abstract class LandmarkCollection {
 */
 /*        landmarks.add(new PointLandmark("Halle Münsterland", 50000, R.drawable.landmark_stadium,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.949066,7.63982)));*/
-        landmarks.add(new PointLandmark("HBF", 500000, R.drawable.landmark_train_station,
+        landmarks.add(new PointLandmark("HBF", 5000, R.drawable.landmark_train_station,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.956667,7.635)));
-        landmarks.add(new PointLandmark("Innenstadt", 800000, R.drawable.landmark_city_center,
+        landmarks.add(new PointLandmark("Innenstadt", 8000, R.drawable.landmark_city_center,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.962825,7.625772)));
-        landmarks.add(new PointLandmark("Fußballstadion", 500000, R.drawable.landmark_stadium,
+        landmarks.add(new PointLandmark("Fußballstadion", 5000, R.drawable.landmark_stadium,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.92917,7.624766)));
 /*        landmarks.add(new PointLandmark("Schloss", 500000, R.drawable.landmark_castle,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.963622,7.613187)));*/
-        landmarks.add(new PointLandmark("Wasserturm", 700000, R.drawable.landmark_tower_water,
+        landmarks.add(new PointLandmark("Wasserturm", 7000, R.drawable.landmark_tower_water,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.947076, 7.620066)));
 /*        landmarks.add(new PointLandmark("Netto", 50000, R.drawable.landmark_shopping,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.949347, 7.616978)));*/
 /*        landmarks.add(new PointLandmark("Schrunz bakery", 50000, R.drawable.landmark_bakery,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.945213, 7.622094)));*/
-        landmarks.add(new PointLandmark("Cineplex", 500000, R.drawable.landmark_cinema,
+        landmarks.add(new PointLandmark("Cineplex", 5000, R.drawable.landmark_cinema,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.950336, 7.637018)));
 /*        landmarks.add(new PointLandmark("harbour recreation area", 50000, R.drawable.landmark_port,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.952093, 7.639746)));*/
-        landmarks.add(new PointLandmark("Zoo", 500000, R.drawable.landmark_zoo,
+        landmarks.add(new PointLandmark("Zoo", 5000, R.drawable.landmark_zoo,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.947907, 7.589782)));
-        landmarks.add(new PointLandmark("WL Bank", 500000, R.drawable.landmark_bank,
+        landmarks.add(new PointLandmark("WL Bank", 5000, R.drawable.landmark_bank,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.943852, 7.613416)));
-        landmarks.add(new PointLandmark("LVM", 500000, R.drawable.landmark_bank,
+        landmarks.add(new PointLandmark("LVM", 5000, R.drawable.landmark_bank,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.949313, 7.615925)));
     }
 }

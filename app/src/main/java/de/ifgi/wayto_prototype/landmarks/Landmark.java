@@ -19,7 +19,7 @@ public abstract class Landmark implements Comparable<Landmark> {
      */
     private String title;
     /**
-     * Radius of reference
+     * Radius of reference. Unit meter
      */
     private double referenceRadius;
     /**
