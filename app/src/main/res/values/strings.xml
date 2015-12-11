@@ -24,4 +24,23 @@
     <string name="log_landmark_shifted_location" translatable="false">: Location shifted to </string>
     <string name="log_reset" translatable="false">Log has been reset</string>
 
+    <!-- Route instructions -->
+    <string-array name="routeInstructions">
+        <item name="1">1) Folgen Sie zunächst der Straße und biegen Sie die erste Straße rechts ab.</item>
+        <item name="2">2) Biegen Sie die erste Straße rechts ab.</item>
+        <item name="3">3) Biegen Sie die erste Straße links ab.</item>
+        <item name="4">4) Biegen Sie die erste Straße rechts ab und folgen Sie der Straße bis zum Ende.</item>
+        <item name="5">5) Biegen Sie am Ende der Straße nach links ab auf den Fußweg.</item>
+        <item name="6">6) Biegen Sie die erste Straße links ab.</item>
+        <item name="7">7) Folgen Sie der Hauptverkehrsstraße und biegen Sie ab auf den dritten Fußweg zu Ihrer linken Seite.</item>
+        <item name="8">8) Biegen Sie an der nächsten Kreuzung mit einem Fußweg rechts ab.</item>
+        <item name="9">9) Folgen Sie dem Fußweg, bis Sie eine Straße erreichen. Biegen Sie hier links ab.</item>
+        <item name="10">10) Biegen Sie die erste Straße links ab.</item>
+        <item name="11">11) Biegen Sie die zweite Straße rechts ab.</item>
+        <item name="12">12) Biegen Sie die erste Straße links ab.</item>
+        <item name="13">13) Biegen Sie in den ersten Fußweg nach links ab.</item>
+        <item name="14">14) Biegen Sie bei der ersten Möglichkeit nach rechts ab.</item>
+        <item name="15">15) Folgen Sie diesem Weg bis zum Ende.</item>
+    </string-array>
+
 </resources>

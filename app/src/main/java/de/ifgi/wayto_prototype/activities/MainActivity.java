@@ -64,7 +64,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -254,6 +253,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Horizontal map ratio
      */
     private final double HORIZONTAL_MAP_RATIO = 10;
+    /**
+     * Offset for the wayfinding instructions at the bottom
+     */
+    private final int INSTRUCTIONS_OFFSET = 200;
     /**
      * List of pre-defined landmarks
      */
@@ -1643,6 +1646,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x; // Nexus5: 1080; width = x
         int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y; // Nexus5: 1536: height = y
 
+        // Have an offset for the instructions
+        mapPixelHeight -= INSTRUCTIONS_OFFSET;
+
         double span = 100;
 
         // Get the min/max latitude values
@@ -1859,6 +1865,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private boolean mapContainsPoint(Landmark l) {
         int mapPixelWidth = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).x; // Nexus5: 1080
         int mapPixelHeight = map.getProjection().toScreenLocation(map.getProjection().getVisibleRegion().nearRight).y; // Nexus5: 1536
+
+        // Have an offset for the instructions
+        mapPixelHeight -= INSTRUCTIONS_OFFSET;
 
         Point lPos = map.getProjection().toScreenLocation(l.getPosition());
         if (lPos.x >= 0 && lPos.x <= mapPixelWidth && lPos.y >= 0 && lPos.y <= mapPixelHeight) {
