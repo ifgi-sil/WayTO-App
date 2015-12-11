@@ -64,6 +64,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
@@ -76,6 +77,8 @@ import java.util.List;
 
 import de.ifgi.wayto_prototype.R;
 import de.ifgi.wayto_prototype.demo.LandmarkCollection;
+import de.ifgi.wayto_prototype.demo.PathSegmentCollection;
+import de.ifgi.wayto_prototype.demo.Segment;
 import de.ifgi.wayto_prototype.demo.Waypoint;
 import de.ifgi.wayto_prototype.demo.WaypointCollection;
 import de.ifgi.wayto_prototype.directions.DirectionsJSONParser;
@@ -259,6 +262,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * List of pre-defined waypoints
      */
     private final ArrayList<Waypoint> PRE_DEFINED_WAYPOINTS = WaypointCollection.initWaypoints();
+    /**
+     * List of pre-defined path segments
+     */
+    private final ArrayList<Segment> PRE_DEFINED_PATHSEGMENTS = PathSegmentCollection.initSegmentPoints();
     /**
      * List of downloaded landmarks
      */
@@ -613,13 +620,17 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         LatLng origin = new LatLng(51.954611,7.624338);
         LatLng dest = new LatLng(51.951483,7.627567);
 
-/*        //Use the google directions api to request a route. Here we access a route for walking form the specified origin to the destination
+/*
+ * use to show route from origin to destination
+        //Use the google directions api to request a route. Here we access a route for walking form the specified origin to the destination
         String url = getDirectionsUrl(origin, dest);
         Log.d(TAG, "Route url" + url);
         DownloadRoute routeFile = new DownloadRoute();
         routeFile.execute(url);
 */
 
+/*
+ * use to show all routes for segments
         ArrayList<Waypoint> waypoints = (ArrayList<Waypoint>) PRE_DEFINED_WAYPOINTS.clone();
         String url;
 
@@ -636,6 +647,29 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 routeFile.execute(url);
             }
         }
+*/
+
+        ArrayList<Segment> pathSegments = (ArrayList<Segment>) PRE_DEFINED_PATHSEGMENTS.clone();
+
+        // Traversing through all the routes
+        for(int i=0;i<pathSegments.size();i++){
+            ArrayList<LatLng> points = null;
+            PolylineOptions lineOptions = null;
+            MarkerOptions markerOptions = new MarkerOptions();
+
+            points = pathSegments.get(i).getSegmentPoints();
+            lineOptions = new PolylineOptions();
+
+            // Adding all the points in the route to LineOptions
+            lineOptions.addAll(points);
+            lineOptions.width(5);
+            lineOptions.color(Color.RED);
+
+            // Drawing polyline in the Google Map for the i-th route
+            map.addPolyline(lineOptions);
+        }
+
+
     }
 
     private String getDirectionsUrl(LatLng origin,LatLng dest){
@@ -1047,6 +1081,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             }catch(Exception e){
                 e.printStackTrace();
             }
+            Log.i(TAG, "JSON Routes" + routes);
             return routes;
         }
 
@@ -1083,6 +1118,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             }
 
             // Drawing polyline in the Google Map for the i-th route
+            Log.i(TAG, "JSON Routes points" + points);
             map.addPolyline(lineOptions);
         }
     }

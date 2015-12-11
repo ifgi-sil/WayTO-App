@@ -39,9 +39,9 @@ public abstract class WaypointCollection {
         waypoints.add(new Waypoint(9, new LatLng(51.945631, 7.614509)));
         waypoints.add(new Waypoint(10, new LatLng(51.943380, 7.614482)));
         waypoints.add(new Waypoint(11, new LatLng(51.943395, 7.615693)));
-//        waypoints.add(new Waypoint(12, new LatLng(51.944624, 7.618970)));
-//        waypoints.add(new Waypoint(13, new LatLng(51.943318, 7.619526)));
-//        waypoints.add(new Waypoint(14, new LatLng(51.943931, 7.621248)));
-//        waypoints.add(new Waypoint(15, new LatLng(51.944423, 7.621104)));
+        waypoints.add(new Waypoint(12, new LatLng(51.944624, 7.618970)));
+        waypoints.add(new Waypoint(13, new LatLng(51.943318, 7.619526)));
+        waypoints.add(new Waypoint(14, new LatLng(51.943931, 7.621248)));
+        waypoints.add(new Waypoint(15, new LatLng(51.944423, 7.621104)));
     }
 }
