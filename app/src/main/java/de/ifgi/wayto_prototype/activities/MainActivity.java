@@ -17,6 +17,7 @@ import android.location.Location;
 import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
@@ -353,6 +354,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         // Check for updates of the application preferences
         checkPreferences();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        finish();
     }
 
     @Override
@@ -2100,10 +2107,20 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void setOnTouchListenerEnabled(boolean b) {
         if (b) {
             mapTouchLayer.setOnTouchListener(new View.OnTouchListener() {
+                Handler handler = new Handler();
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        setMapFollowingListenerEnabled(true, prefCompassTop);
+                        map.getUiSettings().setMyLocationButtonEnabled(false);
+                    }
+                };
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     setMapFollowingListenerEnabled(false, prefCompassTop);
                     map.getUiSettings().setMyLocationButtonEnabled(true);
+                    handler.removeCallbacks(runnable);
+                    handler.postDelayed(runnable, 10000);
                     return false; // Pass on the touch to the map or shadow layer.
                 }
             });
