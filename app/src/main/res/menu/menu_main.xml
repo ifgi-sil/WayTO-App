@@ -4,6 +4,9 @@
         android:id="@+id/menu_item_settings"
         android:title="@string/menu_item_settings" />
     <item
+        android:id="@+id/menu_item_start_navigation"
+        android:title="Start navigation" />
+    <item
         android:id="@+id/menu_item_export"
         android:title="@string/menu_item_export" />
 </menu>
