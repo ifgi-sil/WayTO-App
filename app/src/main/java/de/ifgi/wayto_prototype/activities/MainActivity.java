@@ -18,11 +18,13 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -414,22 +416,71 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     }
 
     /**
+     *
+     */
+    private class OrientationTask extends AsyncTask<String, Void, String> {
+        private boolean running = true;
+        @Override
+        protected String doInBackground(String... url) {
+            while (running) {
+                try {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            Vibrator v = (Vibrator) getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                            // Vibrate for 500 milliseconds
+                            v.vibrate(500);
+                            for (int i = 0; i < 3; i++) {
+                                Toast toast = Toast.makeText(getApplicationContext(), "Device unstable. Remember to try to maintain your orientation.", Toast.LENGTH_LONG);
+                                toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                                toast.show();
+                            }
+                        }
+                    });
+                    Thread.sleep(120000);
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            }
+            return "Executed";
+        }
+
+        protected void onPostExecute(Void param) {
+            //Print Toast or open dialog
+        }
+
+        public void stopExecution() {
+            this.running = false;
+        }
+
+    }
+
+    private OrientationTask orientationTask;
+
+    /**
      * Starts the navigation mode
      */
     private void startNavigationMode() {
-        Toast.makeText(getApplicationContext(), "Navigation started", Toast.LENGTH_SHORT).show();
+        // Toast
+        Toast toast = Toast.makeText(getApplicationContext(), "Navigation started", Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
+        toast.show();
+
+        // Makeup area for instructions at the bottom
         ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
         INSTRUCTIONS_OFFSET = DEFAULT_INSTRUCTIONS_OFFSET;
         params.height = DEFAULT_INSTRUCTIONS_OFFSET;
         findViewById(R.id.instructionsText).setLayoutParams(params);
         recalculateLandmarks(false);
 
+        // show initial path segments and instruction
         showNextRouteSegment(navigationProgressPointer);
         showNextRouteSegment(navigationProgressPointer + 1);
         showNextNavigationInstruction(navigationProgressPointer);
         navigationProgressPointer++;
 
+        // switch to next segment and instruction on click of the instructions area
         findViewById(R.id.instructionsText).setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View view) {
                 if (navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
@@ -440,7 +491,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     navigationProgressPointer++;
                 } else {
                     removePrePreviousRouteSegment(navigationProgressPointer - 2);
-                    Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG).show();
+                    Toast toast = Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.show();
+                }
+                if (navigationProgressPointer==3) {
+                    orientationTask = new OrientationTask();
+                    orientationTask.execute("start");
+                } else if (navigationProgressPointer==14) {
+                    orientationTask.stopExecution();
+                    orientationTask.cancel(true);
                 }
             }
         });
@@ -450,7 +510,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Stops the navigation mode
      */
     private void stopNavigationMode() {
-        Toast.makeText(getApplicationContext(), "Navigation stopped", Toast.LENGTH_SHORT).show();
+        Toast toast = Toast.makeText(getApplicationContext(), "Navigation stopped", Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
+        toast.show();
         ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
         INSTRUCTIONS_OFFSET = 0;
         params.height = 0;
@@ -465,6 +527,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Segment s = PRE_DEFINED_PATHSEGMENTS.get(i);
             if (s.getSegmentPolyline() != null) s.getSegmentPolyline().remove();
         }
+
+        orientationTask.stopExecution();
+        orientationTask.cancel(true);
     }
 
     private void showNextRouteSegment(int segment) {
