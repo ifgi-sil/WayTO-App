@@ -273,7 +273,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Default instructions offset
      */
-    private final int DEFAULT_INSTRUCTIONS_OFFSET = 200;
+    private final int DEFAULT_INSTRUCTIONS_OFFSET = 300;
     /**
      * Pointer to the current progress in the navigation
      */
@@ -434,10 +434,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             public void onClick(View view) {
                 if (navigationProgressPointer<PRE_DEFINED_PATHSEGMENTS.size()){
                     removePreviousRouteSegment(navigationProgressPointer-1);
+                    removePrePreviousRouteSegment(navigationProgressPointer-2);
                     showNextRouteSegment(navigationProgressPointer + 1);
                     showNextNavigationInstruction(navigationProgressPointer);
                     navigationProgressPointer++;
                 } else {
+                    removePrePreviousRouteSegment(navigationProgressPointer-2);
                     Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG).show();
                 }
             }
@@ -476,7 +478,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
             // Adding all the points in the route to LineOptions
             lineOptions.addAll(points);
-            lineOptions.width(5);
+            lineOptions.width(10);
             lineOptions.color(Color.RED);
 
             // Drawing polyline in the Google Map for the i-th route
@@ -486,6 +488,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     }
 
     private void removePreviousRouteSegment(int segment) {
+        if (segment >= 0) {
+            Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
+            if (s.getSegmentPolyline() != null) s.getSegmentPolyline().setColor(Color.argb(75,255,0,0));
+        }
+    }
+
+    private void removePrePreviousRouteSegment(int segment) {
         if (segment >= 0) {
             Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
             if (s.getSegmentPolyline() != null) s.getSegmentPolyline().remove();
@@ -2071,7 +2080,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 public void onMyLocationChange(Location location) {
                     if (location.getBearing()==0.0) {
                         //TODO do something
-                        //animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
+                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
                     } else {
                         animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
                     }
