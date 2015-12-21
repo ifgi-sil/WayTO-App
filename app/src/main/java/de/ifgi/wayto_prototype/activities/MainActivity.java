@@ -330,7 +330,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      *
      */
-    private final Double POSITION_CHANGED_THRESHOLD = 0.00001;
+    private final Double POSITION_CHANGED_THRESHOLD = 0.000001;
     private final Double BEARING_CHANGED_THRESHOLD = 1.0;
 
     // --- End of landmark and map variables ---
@@ -427,19 +427,19 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         showNextRouteSegment(navigationProgressPointer);
         showNextRouteSegment(navigationProgressPointer + 1);
         showNextNavigationInstruction(navigationProgressPointer);
-        navigationProgressPointer ++;
+        navigationProgressPointer++;
 
         findViewById(R.id.instructionsText).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (navigationProgressPointer<PRE_DEFINED_PATHSEGMENTS.size()){
-                    removePreviousRouteSegment(navigationProgressPointer-1);
-                    removePrePreviousRouteSegment(navigationProgressPointer-2);
+                if (navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
+                    removePreviousRouteSegment(navigationProgressPointer - 1);
+                    removePrePreviousRouteSegment(navigationProgressPointer - 2);
                     showNextRouteSegment(navigationProgressPointer + 1);
                     showNextNavigationInstruction(navigationProgressPointer);
                     navigationProgressPointer++;
                 } else {
-                    removePrePreviousRouteSegment(navigationProgressPointer-2);
+                    removePrePreviousRouteSegment(navigationProgressPointer - 2);
                     Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG).show();
                 }
             }
@@ -490,7 +490,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void removePreviousRouteSegment(int segment) {
         if (segment >= 0) {
             Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
-            if (s.getSegmentPolyline() != null) s.getSegmentPolyline().setColor(Color.argb(75,255,0,0));
+            if (s.getSegmentPolyline() != null)
+                s.getSegmentPolyline().setColor(Color.argb(75, 255, 0, 0));
         }
     }
 
@@ -536,10 +537,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     }
 
     /**
-     *
      * @return
      */
-    public CameraPosition getCurrentCameraPosition () {
+    public CameraPosition getCurrentCameraPosition() {
         return this.currentCameraPosition;
     }
 
@@ -580,6 +580,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     /**
      * Check if the cameraPosition changed significantly.
+     *
      * @param cameraPosition new camera position
      * @return boolean
      */
@@ -810,12 +811,12 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     }
 
-    private String getDirectionsUrl(LatLng origin,LatLng dest){
+    private String getDirectionsUrl(LatLng origin, LatLng dest) {
         // Origin of route
-        String str_origin = "origin="+origin.latitude+","+origin.longitude;
+        String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
 
         // Destination of route
-        String str_dest = "destination="+dest.latitude+","+dest.longitude;
+        String str_dest = "destination=" + dest.latitude + "," + dest.longitude;
 
         // Sensor enabled
         String sensor = "sensor=false";
@@ -824,13 +825,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         String travellingMode = "mode=walking";
 
         // Building the parameters to the web service
-        String parameters = str_origin+"&"+str_dest+"&"+sensor+"&"+travellingMode;
+        String parameters = str_origin + "&" + str_dest + "&" + sensor + "&" + travellingMode;
 
         // Output format
         String output = "json";
 
         // Building the url to the web service
-        String url = "https://maps.googleapis.com/maps/api/directions/"+output+"?"+parameters;
+        String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
 
         return url;
     }
@@ -1130,18 +1131,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * A class to download a specified route asynchronous and display it on the map.
      */
-    private class DownloadRoute extends AsyncTask<String, Void, String>{
+    private class DownloadRoute extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... url) {
             // For storing data from web service
             String data = "";
 
-            try{
+            try {
                 // Fetching the data from web service
                 data = downloadUrl(url[0]);
-            }catch(Exception e){
-                Log.d("Background Task",e.toString());
+            } catch (Exception e) {
+                Log.d("Background Task", e.toString());
             }
             return data;
         }
@@ -1159,11 +1160,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             parserTask.execute(result);
         }
 
-        private String downloadUrl(String strUrl) throws IOException{
+        private String downloadUrl(String strUrl) throws IOException {
             String data = "";
             InputStream iStream = null;
             HttpURLConnection urlConnection = null;
-            try{
+            try {
                 URL url = new URL(strUrl);
 
                 // Creating an http connection to communicate with url
@@ -1180,7 +1181,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 StringBuffer sb = new StringBuffer();
 
                 String line = "";
-                while( ( line = br.readLine()) != null){
+                while ((line = br.readLine()) != null) {
                     sb.append(line);
                 }
 
@@ -1188,9 +1189,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
                 br.close();
 
-            }catch(Exception e){
+            } catch (Exception e) {
                 Log.d(TAG, "Exception while downloading url" + e.toString());
-            }finally{
+            } finally {
                 iStream.close();
                 urlConnection.disconnect();
             }
@@ -1201,7 +1202,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * A class to parse the Google Places in JSON format
      */
-    private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String,String>>> >{
+    private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String, String>>>> {
 
         // Parsing the data in non-ui thread
         @Override
@@ -1210,13 +1211,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             JSONObject jObject;
             List<List<HashMap<String, String>>> routes = null;
 
-            try{
+            try {
                 jObject = new JSONObject(jsonData[0]);
                 DirectionsJSONParser parser = new DirectionsJSONParser();
 
                 // Starts parsing data
                 routes = parser.parse(jObject);
-            }catch(Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             Log.i(TAG, "JSON Routes" + routes);
@@ -1231,7 +1232,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             MarkerOptions markerOptions = new MarkerOptions();
 
             // Traversing through all the routes
-            for(int i=0;i<result.size();i++){
+            for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<LatLng>();
                 lineOptions = new PolylineOptions();
 
@@ -1239,8 +1240,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 List<HashMap<String, String>> path = result.get(i);
 
                 // Fetching all the points in i-th route
-                for(int j=0;j<path.size();j++){
-                    HashMap<String,String> point = path.get(j);
+                for (int j = 0; j < path.size(); j++) {
+                    HashMap<String, String> point = path.get(j);
 
                     double lat = Double.parseDouble(point.get("lat"));
                     double lng = Double.parseDouble(point.get("lng"));
@@ -1466,7 +1467,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double heading = getHeading(landmark);
 
         //rotation of arrow according to bearing
-        heading = heading -(360-currentCameraPosition.bearing);
+        heading = heading - (360 - currentCameraPosition.bearing);
 
         // Compute the reverse heading (from the landmark to the map center)
         double reverseHeading = heading;
@@ -1656,7 +1657,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         LatLng mapCenter = map.getCameraPosition().target;
 
         // Calculate and return the heading
-        double heading =  (SphericalUtil.computeHeading(mapCenter, landmark.getPosition()) - currentCameraPosition.bearing) % 360;
+        double heading = (SphericalUtil.computeHeading(mapCenter, landmark.getPosition()) - currentCameraPosition.bearing) % 360;
         //return SphericalUtil.computeHeading(mapCenter, landmark.getPosition());
 
         if (heading < -180) {
@@ -2076,36 +2077,54 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void setMapFollowingListenerEnabled(boolean mapFollowing, boolean compassTop) {
         if (mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                private long lastUpdate = 0;
+                private long curTime;
                 @Override
                 public void onMyLocationChange(Location location) {
-                    if (location.getBearing()==0.0) {
-                        //TODO do something
-                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
-                    } else {
-                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                    curTime = System.currentTimeMillis();
+                    if ((curTime - lastUpdate) > 1000) {
+                        if (location.getBearing() == 0.0) {
+                            animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
+                        } else {
+                            animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                        }
+                        Log.d(TAG, "Map_Follow_MyLocationChanged true true: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
+                        lastUpdate = curTime;
                     }
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
-        } else if(mapFollowing && !compassTop) {
+        } else if (mapFollowing && !compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                private long lastUpdate = 0;
+                private long curTime;
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, currentCameraPosition.zoom);
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                    curTime = System.currentTimeMillis();
+                    if ((curTime - lastUpdate) > 1000) {
+                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, currentCameraPosition.zoom);
+                        Log.d(TAG, "Map_Follow_MyLocationChanged true false: " + location.getLatitude() + ", " + location.getLongitude());
+                        lastUpdate = curTime;
+                    }
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (!mapFollowing && compassTop) {
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                private long lastUpdate = 0;
+                private long curTime;
+                @Override
                 public void onMyLocationChange(Location location) {
-                    if (location.getBearing()==0.0) {
-                        //TODO do something
-                    } else {
-                        animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                    curTime = System.currentTimeMillis();
+                    if ((curTime - lastUpdate) > 1000) {
+                        if (location.getBearing() == 0.0) {
+                            animateTo(currentCameraPosition.target, currentCameraPosition.bearing, currentCameraPosition.zoom);
+                        } else {
+                            animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                        }
+                        Log.d(TAG, "Map_Follow_MyLocationChanged false true: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
+                        lastUpdate = curTime;
                     }
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
         } else if (!mapFollowing && !compassTop) {
@@ -2124,6 +2143,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                         map.getUiSettings().setMyLocationButtonEnabled(false);
                     }
                 };
+
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     setMapFollowingListenerEnabled(false, prefCompassTop);
@@ -2203,25 +2223,25 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         Log.i(TAG, "Number of Landmarks per edge top, right, bottom, left: " + top.size() + ", " + right.size() + ", " + bottom.size() + ", " + left.size());
 
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_TOP; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_TOP; i++) {
             if (i < top.size()) {
                 top.get(i).setDistance(getDistance(top.get(i)));
                 filteredLandmarks.add(top.get(i));
             }
         }
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_RIGHT; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_RIGHT; i++) {
             if (i < right.size()) {
                 right.get(i).setDistance(getDistance(right.get(i)));
                 filteredLandmarks.add(right.get(i));
             }
         }
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_BOTTOM; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_BOTTOM; i++) {
             if (i < bottom.size()) {
                 bottom.get(i).setDistance(getDistance(bottom.get(i)));
                 filteredLandmarks.add(bottom.get(i));
             }
         }
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_LEFT; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_LEFT; i++) {
             if (i < left.size()) {
                 left.get(i).setDistance(getDistance(left.get(i)));
                 filteredLandmarks.add(left.get(i));
