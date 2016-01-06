@@ -499,6 +499,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
                     toast.show();
                 }
+
+                // Orientation task reminder only between segments 3 and 13
                 if (navigationProgressPointer==3) {
                     orientationTask = new OrientationTask();
                     orientationTask.execute("start");
@@ -506,6 +508,41 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     orientationTask.stopExecution();
                     orientationTask.cancel(true);
                 }
+            }
+        });
+
+        findViewById(R.id.instructionsText).setOnLongClickListener(new View.OnLongClickListener() {
+
+            @Override
+            public boolean onLongClick(View v) {
+                if (navigationProgressPointer > 1 && navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
+                    // current segment remove
+                    removePrePreviousRouteSegment(navigationProgressPointer);
+                    // previous segment to reg
+                    showPreviousRouteSegment(navigationProgressPointer - 1);
+                    // preprevious segment to light red
+                    showPrePreviousRouteSegment(navigationProgressPointer - 2);
+                    showNextNavigationInstruction(navigationProgressPointer - 2);
+                    navigationProgressPointer--;
+                } else if (navigationProgressPointer <= 1){
+                    Toast toast = Toast.makeText(getApplicationContext(), "No previous instruction available.", Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.show();
+                } else {
+                    Toast toast = Toast.makeText(getApplicationContext(), "Destination already reached.", Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.show();
+                }
+
+                // Orientation task reminder only between segments 3 and 13
+                if (navigationProgressPointer==13) {
+                    orientationTask = new OrientationTask();
+                    orientationTask.execute("start");
+                } else if (navigationProgressPointer==2) {
+                    orientationTask.stopExecution();
+                    orientationTask.cancel(true);
+                }
+                return true;
             }
         });
     }
@@ -532,8 +569,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             if (s.getSegmentPolyline() != null) s.getSegmentPolyline().remove();
         }
 
-        orientationTask.stopExecution();
-        orientationTask.cancel(true);
+        if (orientationTask != null) {
+            orientationTask.stopExecution();
+            orientationTask.cancel(true);
+        }
     }
 
     private void showNextRouteSegment(int segment) {
@@ -564,10 +603,38 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
+    private void showPreviousRouteSegment(int segment) {
+        if (segment >= 0) {
+            Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
+            if (s.getSegmentPolyline() != null)
+                s.getSegmentPolyline().setColor(Color.argb(255, 255, 0, 0));
+        }
+    }
+
     private void removePrePreviousRouteSegment(int segment) {
         if (segment >= 0) {
             Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
             if (s.getSegmentPolyline() != null) s.getSegmentPolyline().remove();
+        }
+    }
+
+    private void showPrePreviousRouteSegment(int segment) {
+        ArrayList<LatLng> points = null;
+        PolylineOptions lineOptions = null;
+        MarkerOptions markerOptions = new MarkerOptions();
+
+        if (segment >= 0) {
+            points = PRE_DEFINED_PATHSEGMENTS.get(segment).getSegmentPoints();
+            lineOptions = new PolylineOptions();
+
+            // Adding all the points in the route to LineOptions
+            lineOptions.addAll(points);
+            lineOptions.width(10);
+            lineOptions.color(Color.argb(75, 255, 0, 0));
+
+            // Drawing polyline in the Google Map for the i-th route
+            Polyline polyline = map.addPolyline(lineOptions);
+            PRE_DEFINED_PATHSEGMENTS.get(segment).setSegmentPolyline(polyline);
         }
     }
 
