@@ -22,7 +22,7 @@
             android:background="#ddefefef"
             android:textColor="@android:color/black"
             android:textAlignment="center"
-            android:textSize="10pt"
+            android:textSize="18dp"
             android:gravity="center"
             android:text=""
             android:layout_gravity="center_horizontal|bottom" />

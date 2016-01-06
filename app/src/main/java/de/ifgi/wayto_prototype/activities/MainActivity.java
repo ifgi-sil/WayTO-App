@@ -1,6 +1,8 @@
 package de.ifgi.wayto_prototype.activities;
 
 import android.app.ActionBar;
+import android.app.Activity;
+import android.app.Application;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,6 +24,7 @@ import android.os.Vibrator;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -275,7 +278,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Default instructions offset
      */
-    private final int DEFAULT_INSTRUCTIONS_OFFSET = 300;
+    private int DEFAULT_INSTRUCTIONS_OFFSET;
+    /**
+     * Task to remind the participant to keep oriented
+     */
+    private OrientationTask orientationTask;
     /**
      * Pointer to the current progress in the navigation
      */
@@ -432,9 +439,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                                     " at time: " + getCurrentTime() + "\n";
                             Vibrator v = (Vibrator) getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                             // Vibrate for 500 milliseconds
-                            v.vibrate(500);
+                            v.vibrate(100);
                             for (int i = 0; i < 3; i++) {
-                                Toast toast = Toast.makeText(getApplicationContext(), "Device unstable. Remember to try to maintain your orientation.", Toast.LENGTH_LONG);
+                                Toast toast = Toast.makeText(getApplicationContext(), "Unzuverlässiges Gerät. Denk dran zu versuchen deine Orientierung aufrecht zu erhalten.", Toast.LENGTH_LONG);
                                 toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
                                 toast.show();
                             }
@@ -458,16 +465,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     }
 
-    private OrientationTask orientationTask;
-
     /**
      * Starts the navigation mode
      */
     private void startNavigationMode() {
+        calculateInstructionsOffset();
+
         // Toast
         Toast toast = Toast.makeText(getApplicationContext(), "Navigation started", Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
         toast.show();
+
+        animateTo(currentCameraPosition.target, currentCameraPosition.bearing, 17);
 
         // Makeup area for instructions at the bottom
         ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
@@ -496,15 +505,15 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 } else {
                     removePrePreviousRouteSegment(navigationProgressPointer - 1);
                     Toast toast = Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG);
-                    toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
                     toast.show();
                 }
 
                 // Orientation task reminder only between segments 3 and 13
-                if (navigationProgressPointer==3) {
+                if (navigationProgressPointer == 3) {
                     orientationTask = new OrientationTask();
                     orientationTask.execute("start");
-                } else if (navigationProgressPointer==14) {
+                } else if (navigationProgressPointer == 14) {
                     orientationTask.stopExecution();
                     orientationTask.cancel(true);
                 }
@@ -572,6 +581,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         if (orientationTask != null) {
             orientationTask.stopExecution();
             orientationTask.cancel(true);
+            orientationTask = null;
+        }
+    }
+
+    private void calculateInstructionsOffset() {
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int screenHeight = size.y;
+        DEFAULT_INSTRUCTIONS_OFFSET = screenHeight/6;
         }
     }
 
@@ -670,13 +689,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             currentCameraPosition = cameraPosition;
             updateMap();
         }
-    }
-
-    /**
-     * @return
-     */
-    public CameraPosition getCurrentCameraPosition() {
-        return this.currentCameraPosition;
     }
 
     @Override
@@ -2221,25 +2233,32 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     private void setMapFollowingListenerEnabled(boolean mapFollowing, boolean compassTop) {
         if (mapFollowing && compassTop) {
+            Log.d(TAG, "mapFollowingandCompass true true");
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 private long lastUpdate = 0;
                 private long curTime;
                 @Override
                 public void onMyLocationChange(Location location) {
                     curTime = System.currentTimeMillis();
-                    if ((curTime - lastUpdate) > 1000) {
+                    if ((curTime - lastUpdate) > 2000) {
+                        Log.d(TAG,"onmylocationchanged secondly");
                         if (location.getBearing() == 0.0) {
-                            animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
+                            //TODO
+                            if (!initialCameraChange) {
+                                animateTo(new LatLng(location.getLatitude(), location.getLongitude()), map.getCameraPosition().bearing, map.getCameraPosition().zoom);
+                            }
                         } else {
-                            animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                            if (!initialCameraChange) {
+                                animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), map.getCameraPosition().zoom);
+                            }
                         }
-                        Log.d(TAG, "Map_Follow_MyLocationChanged true true: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                         lastUpdate = curTime;
                     }
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (mapFollowing && !compassTop) {
+            Log.d(TAG, "mapFollowingandCompass true false");
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 private long lastUpdate = 0;
                 private long curTime;
@@ -2247,14 +2266,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 public void onMyLocationChange(Location location) {
                     curTime = System.currentTimeMillis();
                     if ((curTime - lastUpdate) > 1000) {
-                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, currentCameraPosition.zoom);
-                        Log.d(TAG, "Map_Follow_MyLocationChanged true false: " + location.getLatitude() + ", " + location.getLongitude());
+                        if (!initialCameraChange) {
+                            animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, map.getCameraPosition().zoom);
+                        }
                         lastUpdate = curTime;
                     }
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (!mapFollowing && compassTop) {
+            Log.d(TAG, "mapFollowingandCompass false true");
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
                 private long lastUpdate = 0;
                 private long curTime;
@@ -2263,16 +2284,20 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                     curTime = System.currentTimeMillis();
                     if ((curTime - lastUpdate) > 1000) {
                         if (location.getBearing() == 0.0) {
-                            animateTo(currentCameraPosition.target, currentCameraPosition.bearing, currentCameraPosition.zoom);
+                            if (!initialCameraChange) {
+                                animateTo(map.getCameraPosition().target, map.getCameraPosition().bearing, map.getCameraPosition().zoom);
+                            }
                         } else {
-                            animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                            if (!initialCameraChange) {
+                                animateTo(map.getCameraPosition().target, location.getBearing(), map.getCameraPosition().zoom);
+                            }
                         }
-                        Log.d(TAG, "Map_Follow_MyLocationChanged false true: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                         lastUpdate = curTime;
                     }
                 }
             });
         } else if (!mapFollowing && !compassTop) {
+            Log.d(TAG, "mapFollowingandCompass false false");
             map.setOnMyLocationChangeListener(null);
         }
     }
