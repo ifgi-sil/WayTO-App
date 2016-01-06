@@ -1,8 +1,5 @@
 package de.ifgi.wayto_prototype.activities;
 
-import android.app.ActionBar;
-import android.app.Activity;
-import android.app.Application;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,9 +19,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
 import android.view.Gravity;
@@ -35,7 +30,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -73,13 +67,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -205,6 +194,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * ID for the "polygon" method
      */
     private final int METHOD_POLYGON = 1;
+    /**
+     * Orientation Instructions of Turn-by-turn instructions
+     */
+    private String INSTRUCTIONS;
 
     // --- End of method variables ---
 
@@ -258,6 +251,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Preference value for the method for displaying regional landmarks
      */
     private int prefMethodRegional;
+    /**
+     * Preference value for the instruction mode
+     */
+    private int prefInstructions;
 
     // --- End of preferences variables ---
 
@@ -561,7 +558,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      */
     private void stopNavigationMode() {
         Toast toast = Toast.makeText(getApplicationContext(), "Navigation stopped", Toast.LENGTH_SHORT);
-        toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
+        toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
         toast.show();
         ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
         INSTRUCTIONS_OFFSET = 0;
@@ -591,7 +588,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         display.getSize(size);
         int screenHeight = size.y;
         DEFAULT_INSTRUCTIONS_OFFSET = screenHeight/6;
-        }
     }
 
     private void showNextRouteSegment(int segment) {
@@ -659,7 +655,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     private void showNextNavigationInstruction(int instruction) {
         TextView tv = (TextView) findViewById(R.id.instructionsText);
-        tv.setText(getResources().getStringArray(R.array.routeInstructions)[instruction]);
+        if (prefInstructions == 0) {
+            tv.setText(getResources().getStringArray(R.array.orientationInstructions)[instruction]);
+        } else if (prefInstructions == 1) {
+            tv.setText(getResources().getStringArray(R.array.tbtInstructions)[instruction]);
+        }
     }
 
     /**
@@ -763,6 +763,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Load the shared preferences
      */
     private void loadPreferences() {
+        Log.i(TAG, "preferences method load");
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         prefMapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
         prefMapCompass = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_COMPASS, false);
@@ -778,6 +779,9 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
         prefMethodRegional = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_REGIONAL, "1"));
+        prefInstructions = Integer.valueOf(
+                preferences.getString(SettingsActivity.PREF_KEY_INSTRUCTION, "1"));
+        Log.i(TAG, "preferences method instructions: " + prefInstructions);
     }
 
     /**
@@ -785,6 +789,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
+        Log.i(TAG, "preferences method check");
         updateMapRotatingAndFollowing();
         if (prefMapCompass) {
             map.getUiSettings().setCompassEnabled(true);

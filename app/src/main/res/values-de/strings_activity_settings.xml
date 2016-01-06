@@ -29,6 +29,7 @@
 
     <string name="pref_title_coloured">Verwende farbige Landmarks</string>
 
+
     <!-- Settings for the method of displaying off-screen landmarks -->
     <string name="pref_header_method">Methode</string>
 
