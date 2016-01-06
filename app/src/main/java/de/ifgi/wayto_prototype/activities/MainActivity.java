@@ -426,6 +426,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 try {
                     runOnUiThread(new Runnable() {
                         public void run() {
+                            logger += "Device unstable message" +
+                                    " at time: " + getCurrentTime() + "\n";
                             Vibrator v = (Vibrator) getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
                             // Vibrate for 500 milliseconds
                             v.vibrate(500);
