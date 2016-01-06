@@ -405,6 +405,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 intent.putExtra(Intent.EXTRA_TEXT, logger);
                 Intent mailer = Intent.createChooser(intent, null);
                 startActivity(mailer);
+                return true;
+            case R.id.menu_item_reset:
                 // Reset the log
                 logger = "";
                 Toast.makeText(getApplicationContext(), getString(R.string.log_reset),
