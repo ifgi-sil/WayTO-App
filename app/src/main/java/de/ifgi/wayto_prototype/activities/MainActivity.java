@@ -488,13 +488,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             @Override
             public void onClick(View view) {
                 if (navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
-                    removePreviousRouteSegment(navigationProgressPointer - 1);
-                    removePrePreviousRouteSegment(navigationProgressPointer - 2);
+                    removePreviousRouteSegment(navigationProgressPointer);
+                    removePrePreviousRouteSegment(navigationProgressPointer - 1);
                     showNextRouteSegment(navigationProgressPointer + 1);
                     showNextNavigationInstruction(navigationProgressPointer);
                     navigationProgressPointer++;
                 } else {
-                    removePrePreviousRouteSegment(navigationProgressPointer - 2);
+                    removePrePreviousRouteSegment(navigationProgressPointer - 1);
                     Toast toast = Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG);
                     toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
                     toast.show();
@@ -816,11 +816,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             Log.e(TAG, message);
         }
-
-        showRoute();
     }
 
+
+/*
+    Function to manually display route segments
+    Not needed anymore.
+*/
+/*
     private void showRoute() {
+*/
 /*
         LatLng origin = new LatLng(51.954611,7.624338);
         LatLng dest = new LatLng(51.951483,7.627567);
@@ -877,8 +882,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             map.addPolyline(lineOptions);
         }
 */
-
+/*
     }
+*/
+
+/*  Function to get directions url for two points. Directions url is the url that gets the route from google directions API.
 
     private String getDirectionsUrl(LatLng origin, LatLng dest) {
         // Origin of route
@@ -903,7 +911,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
 
         return url;
-    }
+    }*/
 
 
     private void computeMapScreenRatio() {
@@ -1197,9 +1205,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
-    /**
+    /*Class to manually download the route from google directions API
+    *//**
      * A class to download a specified route asynchronous and display it on the map.
-     */
+     *//*
     private class DownloadRoute extends AsyncTask<String, Void, String> {
 
         @Override
@@ -1266,7 +1275,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             }
             return data;
         }
-    }
+    }*/
 
     /**
      * A class to parse the Google Places in JSON format
