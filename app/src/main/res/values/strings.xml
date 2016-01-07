@@ -41,7 +41,7 @@
         <item name="12">12/15 Biegen Sie links ab und folgen Sie der Straße bis zur zweiten Abbiegung auf der linken Seite (es ist ein Fußweg).</item>
         <item name="13">13/15 Biegen Sie in den Fußweg ab und folgen ihm bis zur nächsten Straße.</item>
         <item name="14">14/15 Biegen Sie rechts in die schmale Straße ab und folgen ihr über den Parkplatz.</item>
-        <item name="15">15/15 Biegen Sie an dem Durchgang zwischen den Garagen links ab und folgen dem Weg bis zu dem kleine Platz. Halten Sie dort an.</item>
+        <item name="15">15/15 Folgen Sie dem Weg weiter geradeaus bis zu dem kleine Platz. Halten Sie dort an.</item>
     </string-array>
     <string-array name="tbtInstructions">
         <item name="1">1/15</item>
