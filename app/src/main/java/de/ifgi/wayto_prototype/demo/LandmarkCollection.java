@@ -92,7 +92,7 @@ public abstract class LandmarkCollection {
         landmarks.add(new PointLandmark("WL Bank", 5000, R.drawable.landmark_bank,
                 R.drawable.landmark_coloured_shopping, new LatLng(51.943852, 7.613416)));
         landmarks.add(new PointLandmark("LVM", 5000, R.drawable.landmark_bank,
-                R.drawable.landmark_coloured_shopping, new LatLng(51.949313, 7.615925)));
+                R.drawable.landmark_coloured_shopping, new LatLng(51.949077, 7.614945)));
         landmarks.add(new PointLandmark("DRK", 5000, R.drawable.landmark_cross,
                 R.drawable.landmark_coloured_cross, new LatLng(51.946928, 7.612823)));
     }
