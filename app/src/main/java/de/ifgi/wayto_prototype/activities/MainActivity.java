@@ -18,6 +18,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Vibrator;
+import android.preference.ListPreference;
 import android.preference.PreferenceManager;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -466,11 +467,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Starts the navigation mode
      */
     private void startNavigationMode() {
+        logger += "Navigation started at time: " + getCurrentTime() + " with the following settings: \n" +
+                "Follow user: " + prefMapFollow + "\n" +
+                "Rotate map to compass: " + prefCompassTop + "\n" +
+                "Enable compass: " + prefMapCompass + "\n" +
+                "Display off-screen landmarks: " + prefMethod + "\n" +
+                "Type of off-screen landmarks: " + getResources().getStringArray(R.array.pref_items_method_type)[prefMethodType] + "\n" +
+                "Type of instructions: " + getResources().getStringArray(R.array.pref_items_instruction)[prefInstructions] + "\n";
         calculateInstructionsOffset();
 
         // Toast
         Toast toast = Toast.makeText(getApplicationContext(), "Navigation started", Toast.LENGTH_SHORT);
-        toast.setGravity(Gravity.BOTTOM,0,DEFAULT_INSTRUCTIONS_OFFSET);
+        toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
         toast.show();
 
         animateTo(currentCameraPosition.target, currentCameraPosition.bearing, 17);
@@ -487,6 +495,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         showNextRouteSegment(navigationProgressPointer + 1);
         showNextNavigationInstruction(navigationProgressPointer);
         navigationProgressPointer++;
+
+        recalculateLandmarks(false);
 
         // switch to next segment and instruction on click of the instructions area
         findViewById(R.id.instructionsText).setOnClickListener(new View.OnClickListener() {
@@ -557,6 +567,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Stops the navigation mode
      */
     private void stopNavigationMode() {
+        logger += "Navigation stopped at time: " + getCurrentTime();
         Toast toast = Toast.makeText(getApplicationContext(), "Navigation stopped", Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
         toast.show();
@@ -781,7 +792,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_REGIONAL, "1"));
         prefInstructions = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_INSTRUCTION, "1"));
-        Log.i(TAG, "preferences method instructions: " + prefInstructions);
     }
 
     /**
