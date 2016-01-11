@@ -90,7 +90,7 @@
         <ListPreference
             android:key="pref_key_instruction"
             android:title="@string/pref_title_instruction"
-            android:defaultValue="1"
+            android:defaultValue="0"
             android:entries="@array/pref_items_instruction"
             android:entryValues="@array/pref_values_instruction"
             android:negativeButtonText="@null"
