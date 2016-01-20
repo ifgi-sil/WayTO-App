@@ -68,8 +68,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -365,6 +369,26 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     @Override
     protected void onDestroy() {
+        File root = android.os.Environment.getExternalStorageDirectory();
+        File dir = new File(root.getAbsolutePath() + "/wayto/log");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        File file = new File(dir, System.currentTimeMillis() + "_log.txt");
+        File fileLatest = new File(dir, "latest_log.txt");
+
+        try {
+            BufferedWriter buf = new BufferedWriter(new FileWriter(file, false));
+            buf.write(logger);
+            buf.close();
+
+            BufferedWriter buflatest = new BufferedWriter(new FileWriter(fileLatest, false));
+            buflatest.write(logger);
+            buflatest.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         super.onDestroy();
         finish();
     }
