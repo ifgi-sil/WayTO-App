@@ -528,16 +528,21 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             @Override
             public void onClick(View view) {
                 if (navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
-                    removePreviousRouteSegment(navigationProgressPointer);
-                    removePrePreviousRouteSegment(navigationProgressPointer - 1);
+                    //removePreviousRouteSegment(navigationProgressPointer);
+                    //removePrePreviousRouteSegment(navigationProgressPointer - 1);
                     showNextRouteSegment(navigationProgressPointer + 1);
                     showNextNavigationInstruction(navigationProgressPointer);
                     navigationProgressPointer++;
                 } else {
-                    removePrePreviousRouteSegment(navigationProgressPointer - 1);
+                    //removePrePreviousRouteSegment(navigationProgressPointer - 1);
                     Toast toast = Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG);
                     toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
                     toast.show();
+
+                    ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
+                    INSTRUCTIONS_OFFSET = 0;
+                    params.height = 0;
+                    findViewById(R.id.instructionsText).setLayoutParams(params);
                 }
 
                 // Orientation task reminder only between segments 3 and 13
@@ -557,7 +562,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             public boolean onLongClick(View v) {
                 if (navigationProgressPointer > 1 && navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
                     // current segment remove
-                    removePrePreviousRouteSegment(navigationProgressPointer);
+                    //removePrePreviousRouteSegment(navigationProgressPointer);
                     // previous segment to reg
                     showPreviousRouteSegment(navigationProgressPointer - 1);
                     // preprevious segment to light red
