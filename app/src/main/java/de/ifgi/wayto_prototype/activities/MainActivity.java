@@ -128,21 +128,30 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     // --- Marker variables ---
 
     /**
+     * Size of the display
+     */
+    private int DISPLAY_WIDTH;
+    private int DISPLAY_HEIGHT;
+    /**
+     * Offset towards the edge of the map, where the offscreen landmarks are shown
+     */
+    private int OFF_SCREEN_LANDMARKS_SPAN;
+    /**
      * Size of the markers
      */
-    private final int SIZE_MARKER = 50;
+    private int SIZE_MARKER;
     /**
      * Size of the circles underlying the markers
      */
-    private final int SIZE_CIRCLE = 45;
+    private int SIZE_CIRCLE;
     /**
      * Size of the arrows of the off-screen landmarks
      */
-    private final int SIZE_ARROW = 50;
+    private int SIZE_ARROW;
     /**
      * Distance of the arrows to their corresponding markers in pixels
      */
-    private final int DISTANCE_ARROW = (SIZE_MARKER + SIZE_ARROW) / 2 + 10;
+    private int DISTANCE_ARROW;
     /**
      * ID for on-screen markers
      */
@@ -811,11 +820,20 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         prefColoured = preferences.getBoolean(SettingsActivity.PREF_KEY_COLOURED, false);
         prefMethod = preferences.getBoolean(SettingsActivity.PREF_KEY_METHOD, true);
         prefMethodType = Integer.valueOf(
-                preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
+                preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "1"));
         prefMethodRegional = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_REGIONAL, "1"));
         prefInstructions = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_INSTRUCTION, "1"));
+
+        //Set display parameter
+        DISPLAY_WIDTH = getDisplayWidth();
+        DISPLAY_HEIGHT = getDisplayHeight();
+        SIZE_MARKER =  (int) (DISPLAY_HEIGHT*0.025);
+        SIZE_CIRCLE = (int) (DISPLAY_HEIGHT*0.023);
+        SIZE_ARROW = (int) (DISPLAY_HEIGHT*0.025);
+        DISTANCE_ARROW = (SIZE_MARKER + SIZE_ARROW) / 2 + ((int)(DISPLAY_HEIGHT*0.005));
+        OFF_SCREEN_LANDMARKS_SPAN = (int) (DISPLAY_HEIGHT*0.05);
     }
 
     /**
@@ -861,7 +879,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             updateMap();
         }
         int methodType = Integer.valueOf(
-                preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
+                preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "1"));
         if (prefMethodType != methodType) {
             prefMethodType = methodType;
             updateMap();
@@ -1887,81 +1905,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
-/*    *//**
-     * Function to compute the shifted position of an off-screen landmark
-     *
-     * @param landmark Landmark to be shifted
-     * @return Shifted position
-     *//*
-    private LatLng computeOffScreenPositionOld(Landmark landmark) {
-
-        // Get the landmark's heading ID - south, east, north, west
-        int headingID = getHeadingID(landmark);
-
-        // Get the bounding box of the displayed map and the map center
-        LatLngBounds bounds = map.getProjection().getVisibleRegion().latLngBounds;
-        LatLng mapCenter = new LatLng(bounds.getCenter().latitude, bounds.getCenter().longitude);
-
-        // Calculate the latitude and longitude spans
-        double spanLat = bounds.northeast.latitude - bounds.southwest.latitude;
-        double spanLng = bounds.northeast.longitude - bounds.southwest.longitude;
-
-        // Get the min/max latitude values
-        double boundingLatMin = bounds.southwest.latitude + spanLat / VERTICAL_MAP_RATIO;
-        double boundingLatMax = bounds.northeast.latitude - spanLat / VERTICAL_MAP_RATIO;
-
-        // Get the min/max longitude values
-        double boundingLngMin = bounds.southwest.longitude + spanLng / HORIZONTAL_MAP_RATIO;
-        double boundingLngMax = bounds.northeast.longitude - spanLng / HORIZONTAL_MAP_RATIO;
-
-        // Simplify the names of the variables
-        double latMapCenter = mapCenter.latitude;
-        double lngMapCenter = mapCenter.longitude;
-        double latLM = landmark.getPosition().latitude;
-        double lngLM = landmark.getPosition().longitude;
-
-        // Start the computation
-        double shiftedLat = 0;
-        double shiftedLng = 0;
-        switch (headingID) {
-            case Heading.BOTTOM_ID:
-                // Compute the landmark's shifted position for the Southern heading
-                shiftedLat = boundingLatMin;
-                shiftedLng = lngMapCenter - (lngLM - lngMapCenter) / (latLM - latMapCenter) *
-                        (latMapCenter - boundingLatMin);
-                break;
-            case Heading.LEFT_ID:
-                // Compute the landmark's shifted position for the Western heading
-                shiftedLat = latMapCenter - (latLM - latMapCenter) / (lngLM - lngMapCenter) *
-                        (lngMapCenter - boundingLngMin);
-                shiftedLng = boundingLngMin;
-                break;
-            case Heading.TOP_ID:
-                // Compute the landmark's shifted position for the Northern heading
-                shiftedLat = boundingLatMax;
-                shiftedLng = lngMapCenter + (lngLM - lngMapCenter) / (latLM - latMapCenter) *
-                        (boundingLatMax - latMapCenter);
-                break;
-            case Heading.RIGHT_ID:
-                // Compute the landmark's shifted position for the Eastern heading
-                shiftedLat = latMapCenter + (latLM - latMapCenter) / (lngLM - lngMapCenter) *
-                        (boundingLngMax - lngMapCenter);
-                shiftedLng = boundingLngMax;
-                break;
-        }
-
-        // Move the position to the allowed bounding box if necessary
-        if (shiftedLat < boundingLatMin) shiftedLat = boundingLatMin;
-        if (shiftedLat > boundingLatMax) shiftedLat = boundingLatMax;
-        if (shiftedLng < boundingLngMin) shiftedLng = boundingLngMin;
-        if (shiftedLng > boundingLngMax) shiftedLng = boundingLngMax;
-
-        // Return the landmark's shifted position
-        LatLng shiftedPosition = new LatLng(shiftedLat, shiftedLng);
-        Log.d(TAG, landmark.getTitle() + getString(R.string.log_landmark_shifted_location) +
-                shiftedPosition.toString());
-        return shiftedPosition;
-    }*/
 
     /**
      * Function to compute the shifted position of an off-screen landmark
@@ -1981,15 +1924,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         // Have an offset for the instructions
         mapPixelHeight -= INSTRUCTIONS_OFFSET;
 
+
         double span = 100;
 
         // Get the min/max latitude values
-        double boundingXMin = span;
-        double boundingXMax = mapPixelWidth - span;
+        double boundingXMin = OFF_SCREEN_LANDMARKS_SPAN;
+        double boundingXMax = mapPixelWidth - OFF_SCREEN_LANDMARKS_SPAN;
 
         // Get the min/max longitude values
-        double boundingYMin = span;
-        double boundingYMax = mapPixelHeight - span;
+        double boundingYMin = OFF_SCREEN_LANDMARKS_SPAN;
+        double boundingYMax = mapPixelHeight - OFF_SCREEN_LANDMARKS_SPAN;
 
         // Simplify the names of the variables
         double xMapCenter = mapPixelWidth / 2;
@@ -2464,5 +2408,19 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Collections.sort(filteredLandmarks);
             return filteredLandmarks;
         }
+    }
+
+    private int getDisplayWidth() {
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        return size.x;
+    }
+
+    private int getDisplayHeight() {
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        return size.y;
     }
 }

@@ -65,7 +65,7 @@
         <ListPreference
             android:dependency="pref_key_method"
             android:key="pref_key_method_type"
-            android:title="@string/pref_title_method"
+            android:title="@string/pref_title_method_type"
             android:defaultValue="1"
             android:entries="@array/pref_items_method_type"
             android:entryValues="@array/pref_values_method_type"
