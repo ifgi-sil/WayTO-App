@@ -8,6 +8,10 @@
 
     <string name="pref_title_map_follow">Folge Nutzer</string>
 
+    <string name="pref_title_map_compass">Kompass anzeigen</string>
+
+    <string name="pref_title_compass_top">Karte anhand Kompass rotieren</string>
+
     <string name="pref_title_map_type">Kartentyp</string>
     <string-array name="pref_items_map_type">
         <item>Normal</item>
@@ -21,21 +25,20 @@
     </string-array>
 
     <!-- Settings for the landmarks -->
-    <string name="pref_header_landmarks">Landmarks</string>
+    <string name="pref_header_landmarks">Landmarken</string>
 
-    <string name="pref_title_download">Verwende online Landmarks</string>
+    <string name="pref_title_download">Verwende online Landmarken</string>
 
-    <string name="pref_title_url">URL für online landmarks</string>
+    <string name="pref_title_url">URL für online Landmarken</string>
 
-    <string name="pref_title_coloured">Verwende farbige Landmarks</string>
-
+    <string name="pref_title_coloured">Verwende farbige Landmarken</string>
 
     <!-- Settings for the method of displaying off-screen landmarks -->
     <string name="pref_header_method">Methode</string>
 
-    <string name="pref_title_method">Zeige "off-screen landmarks"</string>
+    <string name="pref_title_method">Zeige "Off-Screen Landmarken"</string>
 
-    <string name="pref_title_method_type">Methode für "off-screen landmarks"</string>
+    <string name="pref_title_method_type">Methode für "Off-Screen Landmarken"</string>
     <string-array name="pref_items_method_type">
         <item>Normale Pfeile (innen)</item>
         <item>Normale Pfeile (außen)</item>
@@ -63,4 +66,16 @@
         <item>1</item>
     </string-array>
 
+    <!-- Settings for the method of instructions -->
+    <string name="pref_header_instruction">Anweisungen</string>
+
+    <string name="pref_title_instruction">Art der Anweisungen</string>
+    <string-array name="pref_items_instruction">
+        <item>Orientierungs Anweisungen</item>
+        <item>Schritt für Schritt Anweisungen</item>
+    </string-array>
+    <string-array name="pref_values_instruction">
+        <item>0</item>
+        <item>1</item>
+    </string-array>
 </resources>

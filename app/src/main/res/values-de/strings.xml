@@ -1,12 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- App and Activity Names -->
     <string name="app_name">WayTO</string>
-    <string name="menu_item_settings">Einstellungen</string>
-    <string name="menu_item_export">Exportiere Log</string>
+    <string name="title_activity_main">WayTO</string>
     <string name="title_activity_about">Über</string>
     <string name="title_activity_help">Hilfe</string>
-    <string name="title_activity_main">WayTO</string>
-    <string name="log_landmark_download_error">Landmarks konnten nicht heruntergeladen werden</string>
+
+    <!-- Menu items -->
+    <string name="menu_item_settings">Einstellungen</string>
+    <string name="menu_item_export">Exportiere Log</string>
+    <string name="menu_item_reset">Reset log</string>
+
+    <!-- Log (and Toast) messages -->
+    <string name="log_map_cannot_create_map" translatable="false">Karte kann nicht erstellt werden</string>
+    <string name="log_map_cannot_create_view_layer" translatable="false">View Layer kann nicht erstellt werden</string>
+    <string name="log_map_osm_error" translatable="false">OSM tile overlay kann nicht geladen werden</string>
     <string name="log_url_missing_error">Bitte gebe eine URL zum Download der Landmarks an</string>
+    <string name="log_landmark_download_error">Landmarks konnten nicht heruntergeladen werden</string>
+    <string name="log_map_point_landmark_added" translatable="false">Landmarke wurde als Marker zu der Karte an folgender Position hinzugefügt: </string>
+    <string name="log_map_bbox_added" translatable="false">Landmarke wurde als Bounding Box zu der Karte an folgender Position hinzugefügt: </string>
+    <string name="log_map_regional_landmark_added" translatable="false">Landmarke wurde als Polygon auf der Karte an folgender Position hinzugefügt: </string>
+    <string name="log_map_wedge_added" translatable="false">Wedge wurde zu der Karte an folgender Position hinzugefügt: </string>
+    <string name="log_landmark_shifted_location" translatable="false">: Die Position hat sich geändert zu </string>
     <string name="log_reset" translatable="false">Der Log wurde zurückgesetzt</string>
+
+    <!-- Route instructions -->
+    <string-array name="orientationInstructions">
+        <item name="1">1/15 Folgen Sie zunächst der Straße und biegen Sie die erste Straße rechts ab. Folgen Sie der Straße bis zum Ende.</item>
+        <item name="2">2/15 Biegen Sie rechts ab und folgen Sie der Straße bis zum Ende.</item>
+        <item name="3">3/15 Biegen Sie links ab und folgen Sie der Straße bis zur Grünfläche am Ende der Straße.</item>
+        <item name="4">4/15 Biegen Sie rechts ab und folgen Sie der Straße bis zum Ende.</item>
+        <item name="5">5/15 Biegen Sie nach links auf den Fußweg ab und folgen dem Weg bis zur Hauptstraße.</item>
+        <item name="6">6/15 An der Hauptstraße biegen Sie links ab und folgen der Straße bis sie auf der linken Seite ein Tor sehen (dritter Fußweg).</item>
+        <item name="7">7/15 Gehe durch das Tor und folge dem Weg bis zur ersten Fußweg-Kreuzung.</item>
+        <item name="8">8/15 Biegen Sie rechts ab und folgen Sie dem Weg bis zur asphaltierten Straße.</item>
+        <item name="9">9/15 An der asphalitierten Straße biegen sie links ab und folgen der Straße bis zur nächsten Kreuzung.</item>
+        <item name="10">10/15 An der Kreuzung biegen Sie links ab und folgen der Straße bis zur zweiten Straße auf der rechten Seite.</item>
+        <item name="11">11/15 Biegen Sie rechts ab und folgen bis zur nächsten Abbiegemöglichkeit auf der linken Seite.</item>
+        <item name="12">12/15 Biegen Sie links ab und folgen Sie der Straße bis zur zweiten Abbiegung auf der linken Seite (es ist ein Fußweg).</item>
+        <item name="13">13/15 Biegen Sie in den Fußweg ab und folgen ihm bis zur nächsten Straße.</item>
+        <item name="14">14/15 Biegen Sie rechts in die schmale Straße ab und folgen ihr über den Parkplatz.</item>
+        <item name="15">15/15 Halten Sie am Ende des Parkplatzes an. Sie haben ihr Ziel erreicht.</item>
+    </string-array>
+    <string-array name="tbtInstructions">
+        <item name="1">1/15</item>
+        <item name="2">2/15</item>
+        <item name="3">3/15</item>
+        <item name="4">4/15</item>
+        <item name="5">5/15</item>
+        <item name="6">6/15</item>
+        <item name="7">7/15</item>
+        <item name="8">8/15</item>
+        <item name="9">9/15</item>
+        <item name="10">10/15</item>
+        <item name="11">11/15</item>
+        <item name="12">12/15</item>
+        <item name="13">13/15</item>
+        <item name="14">14/15</item>
+        <item name="15">15/15</item>
+    </string-array>
 </resources>
