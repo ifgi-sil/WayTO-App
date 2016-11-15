@@ -192,12 +192,14 @@ public abstract class PathSegmentCollection {
             add(new LatLng(51.94393,7.62125));
             add(new LatLng(51.94439,7.62101));
             add(new LatLng(51.9444,7.62101));
+            add(new LatLng(51.944412, 7.621071));
         }}));
 
         segmentPath.add(new Segment(15, new ArrayList<LatLng>() {{
-            add(new LatLng(51.9444,7.62101));
+            //add(new LatLng(51.9444,7.62101));
+            add(new LatLng(51.944412, 7.621071));
             add(new LatLng(51.944581, 7.621798));
-            add(new LatLng(51.944831, 7.621685));
+            add(new LatLng(51.944649, 7.622314));
         }}));
     }
 }

@@ -10,6 +10,7 @@
     <!-- Menu items -->
     <string name="menu_item_settings">Settings</string>
     <string name="menu_item_export">Export Log</string>
+    <string name="menu_item_reset">Reset log</string>
 
     <!-- Log (and Toast) messages -->
     <string name="log_map_cannot_create_map" translatable="false">Cannot create map</string>
@@ -25,22 +26,39 @@
     <string name="log_reset" translatable="false">Log has been reset</string>
 
     <!-- Route instructions -->
-    <string-array name="routeInstructions">
-        <item name="1">1) Folgen Sie zunächst der Straße und biegen Sie die erste Straße rechts ab.</item>
-        <item name="2">2) Biegen Sie die erste Straße rechts ab.</item>
-        <item name="3">3) Biegen Sie die erste Straße links ab.</item>
-        <item name="4">4) Biegen Sie die erste Straße rechts ab und folgen Sie der Straße bis zum Ende.</item>
-        <item name="5">5) Biegen Sie am Ende der Straße nach links ab auf den Fußweg.</item>
-        <item name="6">6) Biegen Sie die erste Straße links ab.</item>
-        <item name="7">7) Folgen Sie der Hauptverkehrsstraße und biegen Sie ab auf den dritten Fußweg zu Ihrer linken Seite.</item>
-        <item name="8">8) Biegen Sie an der nächsten Kreuzung mit einem Fußweg rechts ab.</item>
-        <item name="9">9) Folgen Sie dem Fußweg, bis Sie eine Straße erreichen. Biegen Sie hier links ab.</item>
-        <item name="10">10) Biegen Sie die erste Straße links ab.</item>
-        <item name="11">11) Biegen Sie die zweite Straße rechts ab.</item>
-        <item name="12">12) Biegen Sie die erste Straße links ab.</item>
-        <item name="13">13) Biegen Sie in den ersten Fußweg nach links ab.</item>
-        <item name="14">14) Biegen Sie bei der ersten Möglichkeit nach rechts ab.</item>
-        <item name="15">15) Folgen Sie diesem Weg bis zum Ende.</item>
+    <string-array name="orientationInstructions">
+        <item name="1">1/15 Folgen Sie zunächst der Straße und biegen Sie die erste Straße rechts ab. Folgen Sie der Straße bis zum Ende.</item>
+        <item name="2">2/15 Biegen Sie rechts ab und folgen Sie der Straße bis zum Ende.</item>
+        <item name="3">3/15 Biegen Sie links ab und folgen Sie der Straße bis zur Grünfläche am Ende der Straße.</item>
+        <item name="4">4/15 Biegen Sie rechts ab und folgen Sie der Straße bis zum Ende.</item>
+        <item name="5">5/15 Biegen Sie nach links auf den Fußweg ab und folgen dem Weg bis zur Hauptstraße.</item>
+        <item name="6">6/15 An der Hauptstraße biegen Sie links ab und folgen der Straße bis sie auf der linken Seite ein Tor sehen (dritter Fußweg).</item>
+        <item name="7">7/15 Gehe durch das Tor und folge dem Weg bis zur ersten Fußweg-Kreuzung.</item>
+        <item name="8">8/15 Biegen Sie rechts ab und folgen Sie dem Weg bis zur asphaltierten Straße.</item>
+        <item name="9">9/15 An der asphalitierten Straße biegen sie links ab und folgen der Straße bis zur nächsten Kreuzung.</item>
+        <item name="10">10/15 An der Kreuzung biegen Sie links ab und folgen der Straße bis zur zweiten Straße auf der rechten Seite.</item>
+        <item name="11">11/15 Biegen Sie rechts ab und folgen bis zur nächsten Abbiegemöglichkeit auf der linken Seite.</item>
+        <item name="12">12/15 Biegen Sie links ab und folgen Sie der Straße bis zur zweiten Abbiegung auf der linken Seite (es ist ein Fußweg).</item>
+        <item name="13">13/15 Biegen Sie in den Fußweg ab und folgen ihm bis zur nächsten Straße.</item>
+        <item name="14">14/15 Biegen Sie rechts in die schmale Straße ab und folgen ihr über den Parkplatz.</item>
+        <item name="15">15/15 Halten Sie am Ende des Parkplatzes an. Sie haben ihr Ziel erreicht.</item>
+    </string-array>
+    <string-array name="tbtInstructions">
+        <item name="1">1/15</item>
+        <item name="2">2/15</item>
+        <item name="3">3/15</item>
+        <item name="4">4/15</item>
+        <item name="5">5/15</item>
+        <item name="6">6/15</item>
+        <item name="7">7/15</item>
+        <item name="8">8/15</item>
+        <item name="9">9/15</item>
+        <item name="10">10/15</item>
+        <item name="11">11/15</item>
+        <item name="12">12/15</item>
+        <item name="13">13/15</item>
+        <item name="14">14/15</item>
+        <item name="15">15/15</item>
     </string-array>
 
 </resources>

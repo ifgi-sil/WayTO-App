@@ -1,6 +1,5 @@
 package de.ifgi.wayto_prototype.activities;
 
-import android.app.ActionBar;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -18,11 +17,13 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Vibrator;
+import android.preference.ListPreference;
 import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -30,7 +31,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -68,13 +68,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -200,6 +199,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * ID for the "polygon" method
      */
     private final int METHOD_POLYGON = 1;
+    /**
+     * Orientation Instructions of Turn-by-turn instructions
+     */
+    private String INSTRUCTIONS;
 
     // --- End of method variables ---
 
@@ -253,6 +256,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Preference value for the method for displaying regional landmarks
      */
     private int prefMethodRegional;
+    /**
+     * Preference value for the instruction mode
+     */
+    private int prefInstructions;
 
     // --- End of preferences variables ---
 
@@ -273,7 +280,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      * Default instructions offset
      */
-    private final int DEFAULT_INSTRUCTIONS_OFFSET = 200;
+    private int DEFAULT_INSTRUCTIONS_OFFSET;
+    /**
+     * Task to remind the participant to keep oriented
+     */
+    private OrientationTask orientationTask;
     /**
      * Pointer to the current progress in the navigation
      */
@@ -330,7 +341,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     /**
      *
      */
-    private final Double POSITION_CHANGED_THRESHOLD = 0.00001;
+    private final Double POSITION_CHANGED_THRESHOLD = 0.000001;
     private final Double BEARING_CHANGED_THRESHOLD = 1.0;
 
     // --- End of landmark and map variables ---
@@ -358,6 +369,26 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     @Override
     protected void onDestroy() {
+        File root = android.os.Environment.getExternalStorageDirectory();
+        File dir = new File(root.getAbsolutePath() + "/wayto/log");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        File file = new File(dir, System.currentTimeMillis() + "_log.txt");
+        File fileLatest = new File(dir, "latest_log.txt");
+
+        try {
+            BufferedWriter buf = new BufferedWriter(new FileWriter(file, false));
+            buf.write(logger);
+            buf.close();
+
+            BufferedWriter buflatest = new BufferedWriter(new FileWriter(fileLatest, false));
+            buflatest.write(logger);
+            buflatest.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         super.onDestroy();
         finish();
     }
@@ -403,6 +434,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 intent.putExtra(Intent.EXTRA_TEXT, logger);
                 Intent mailer = Intent.createChooser(intent, null);
                 startActivity(mailer);
+                return true;
+            case R.id.menu_item_reset:
                 // Reset the log
                 logger = "";
                 Toast.makeText(getApplicationContext(), getString(R.string.log_reset),
@@ -414,32 +447,142 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     }
 
     /**
+     *
+     */
+    private class OrientationTask extends AsyncTask<String, Void, String> {
+        private boolean running = true;
+        @Override
+        protected String doInBackground(String... url) {
+            while (running) {
+                try {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            logger += "Device unstable message" +
+                                    " at time: " + getCurrentTime() + "\n";
+                            Vibrator v = (Vibrator) getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE);
+                            // Vibrate for 500 milliseconds
+                            v.vibrate(100);
+                            for (int i = 0; i < 3; i++) {
+                                Toast toast = Toast.makeText(getApplicationContext(), "Unzuverlässiges Gerät. Denk dran zu versuchen deine Orientierung aufrecht zu erhalten.", Toast.LENGTH_LONG);
+                                toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                                toast.show();
+                            }
+                        }
+                    });
+                    Thread.sleep(120000);
+                } catch (InterruptedException e) {
+                    Thread.interrupted();
+                }
+            }
+            return "Executed";
+        }
+
+        protected void onPostExecute(Void param) {
+            //Print Toast or open dialog
+        }
+
+        public void stopExecution() {
+            this.running = false;
+        }
+
+    }
+
+    /**
      * Starts the navigation mode
      */
     private void startNavigationMode() {
-        Toast.makeText(getApplicationContext(), "Navigation started", Toast.LENGTH_SHORT).show();
+        logger += "Navigation started at time: " + getCurrentTime() + " with the following settings: \n" +
+                "Follow user: " + prefMapFollow + "\n" +
+                "Rotate map to compass: " + prefCompassTop + "\n" +
+                "Enable compass: " + prefMapCompass + "\n" +
+                "Display off-screen landmarks: " + prefMethod + "\n" +
+                "Type of off-screen landmarks: " + getResources().getStringArray(R.array.pref_items_method_type)[prefMethodType] + "\n" +
+                "Type of instructions: " + getResources().getStringArray(R.array.pref_items_instruction)[prefInstructions] + "\n";
+        calculateInstructionsOffset();
+
+        // Toast
+        Toast toast = Toast.makeText(getApplicationContext(), "Navigation started", Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+        toast.show();
+
+        animateTo(currentCameraPosition.target, currentCameraPosition.bearing, 17);
+
+        // Makeup area for instructions at the bottom
         ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
         INSTRUCTIONS_OFFSET = DEFAULT_INSTRUCTIONS_OFFSET;
         params.height = DEFAULT_INSTRUCTIONS_OFFSET;
         findViewById(R.id.instructionsText).setLayoutParams(params);
         recalculateLandmarks(false);
 
+        // show initial path segments and instruction
         showNextRouteSegment(navigationProgressPointer);
         showNextRouteSegment(navigationProgressPointer + 1);
         showNextNavigationInstruction(navigationProgressPointer);
-        navigationProgressPointer ++;
+        navigationProgressPointer++;
 
+        recalculateLandmarks(false);
+
+        // switch to next segment and instruction on click of the instructions area
         findViewById(R.id.instructionsText).setOnClickListener(new View.OnClickListener() {
+
             @Override
             public void onClick(View view) {
-                if (navigationProgressPointer<PRE_DEFINED_PATHSEGMENTS.size()){
-                    removePreviousRouteSegment(navigationProgressPointer-1);
+                if (navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
+                    removePreviousRouteSegment(navigationProgressPointer);
+                    removePrePreviousRouteSegment(navigationProgressPointer - 1);
                     showNextRouteSegment(navigationProgressPointer + 1);
                     showNextNavigationInstruction(navigationProgressPointer);
                     navigationProgressPointer++;
                 } else {
-                    Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG).show();
+                    removePrePreviousRouteSegment(navigationProgressPointer - 1);
+                    Toast toast = Toast.makeText(getApplicationContext(), "Navigation finished. Please stop navigation mode.", Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.show();
                 }
+
+                // Orientation task reminder only between segments 3 and 13
+                if (navigationProgressPointer == 3) {
+                    orientationTask = new OrientationTask();
+                    orientationTask.execute("start");
+                } else if (navigationProgressPointer == 14) {
+                    orientationTask.stopExecution();
+                    orientationTask.cancel(true);
+                }
+            }
+        });
+
+        findViewById(R.id.instructionsText).setOnLongClickListener(new View.OnLongClickListener() {
+
+            @Override
+            public boolean onLongClick(View v) {
+                if (navigationProgressPointer > 1 && navigationProgressPointer < PRE_DEFINED_PATHSEGMENTS.size()) {
+                    // current segment remove
+                    removePrePreviousRouteSegment(navigationProgressPointer);
+                    // previous segment to reg
+                    showPreviousRouteSegment(navigationProgressPointer - 1);
+                    // preprevious segment to light red
+                    showPrePreviousRouteSegment(navigationProgressPointer - 2);
+                    showNextNavigationInstruction(navigationProgressPointer - 2);
+                    navigationProgressPointer--;
+                } else if (navigationProgressPointer <= 1){
+                    Toast toast = Toast.makeText(getApplicationContext(), "No previous instruction available.", Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.show();
+                } else {
+                    Toast toast = Toast.makeText(getApplicationContext(), "Destination already reached.", Toast.LENGTH_LONG);
+                    toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+                    toast.show();
+                }
+
+                // Orientation task reminder only between segments 3 and 13
+                if (navigationProgressPointer==13) {
+                    orientationTask = new OrientationTask();
+                    orientationTask.execute("start");
+                } else if (navigationProgressPointer==2) {
+                    orientationTask.stopExecution();
+                    orientationTask.cancel(true);
+                }
+                return true;
             }
         });
     }
@@ -448,7 +591,10 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Stops the navigation mode
      */
     private void stopNavigationMode() {
-        Toast.makeText(getApplicationContext(), "Navigation stopped", Toast.LENGTH_SHORT).show();
+        logger += "Navigation stopped at time: " + getCurrentTime();
+        Toast toast = Toast.makeText(getApplicationContext(), "Navigation stopped", Toast.LENGTH_SHORT);
+        toast.setGravity(Gravity.BOTTOM, 0, DEFAULT_INSTRUCTIONS_OFFSET);
+        toast.show();
         ViewGroup.LayoutParams params = findViewById(R.id.instructionsText).getLayoutParams();
         INSTRUCTIONS_OFFSET = 0;
         params.height = 0;
@@ -463,6 +609,20 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Segment s = PRE_DEFINED_PATHSEGMENTS.get(i);
             if (s.getSegmentPolyline() != null) s.getSegmentPolyline().remove();
         }
+
+        if (orientationTask != null) {
+            orientationTask.stopExecution();
+            orientationTask.cancel(true);
+            orientationTask = null;
+        }
+    }
+
+    private void calculateInstructionsOffset() {
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        int screenHeight = size.y;
+        DEFAULT_INSTRUCTIONS_OFFSET = screenHeight/6;
     }
 
     private void showNextRouteSegment(int segment) {
@@ -476,7 +636,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
             // Adding all the points in the route to LineOptions
             lineOptions.addAll(points);
-            lineOptions.width(5);
+            lineOptions.width(10);
             lineOptions.color(Color.RED);
 
             // Drawing polyline in the Google Map for the i-th route
@@ -488,13 +648,53 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
     private void removePreviousRouteSegment(int segment) {
         if (segment >= 0) {
             Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
+            if (s.getSegmentPolyline() != null)
+                s.getSegmentPolyline().setColor(Color.argb(75, 255, 0, 0));
+        }
+    }
+
+    private void showPreviousRouteSegment(int segment) {
+        if (segment >= 0) {
+            Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
+            if (s.getSegmentPolyline() != null)
+                s.getSegmentPolyline().setColor(Color.argb(255, 255, 0, 0));
+        }
+    }
+
+    private void removePrePreviousRouteSegment(int segment) {
+        if (segment >= 0) {
+            Segment s = PRE_DEFINED_PATHSEGMENTS.get(segment);
             if (s.getSegmentPolyline() != null) s.getSegmentPolyline().remove();
+        }
+    }
+
+    private void showPrePreviousRouteSegment(int segment) {
+        ArrayList<LatLng> points = null;
+        PolylineOptions lineOptions = null;
+        MarkerOptions markerOptions = new MarkerOptions();
+
+        if (segment >= 0) {
+            points = PRE_DEFINED_PATHSEGMENTS.get(segment).getSegmentPoints();
+            lineOptions = new PolylineOptions();
+
+            // Adding all the points in the route to LineOptions
+            lineOptions.addAll(points);
+            lineOptions.width(10);
+            lineOptions.color(Color.argb(75, 255, 0, 0));
+
+            // Drawing polyline in the Google Map for the i-th route
+            Polyline polyline = map.addPolyline(lineOptions);
+            PRE_DEFINED_PATHSEGMENTS.get(segment).setSegmentPolyline(polyline);
         }
     }
 
     private void showNextNavigationInstruction(int instruction) {
         TextView tv = (TextView) findViewById(R.id.instructionsText);
-        tv.setText(getResources().getStringArray(R.array.routeInstructions)[instruction]);
+        if (prefInstructions == 0) {
+            tv.setText(getResources().getStringArray(R.array.orientationInstructions)[instruction]);
+        } else if (prefInstructions == 1) {
+            tv.setText(getResources().getStringArray(R.array.tbtInstructions)[instruction]);
+        }
     }
 
     /**
@@ -524,14 +724,6 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             currentCameraPosition = cameraPosition;
             updateMap();
         }
-    }
-
-    /**
-     *
-     * @return
-     */
-    public CameraPosition getCurrentCameraPosition () {
-        return this.currentCameraPosition;
     }
 
     @Override
@@ -571,6 +763,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     /**
      * Check if the cameraPosition changed significantly.
+     *
      * @param cameraPosition new camera position
      * @return boolean
      */
@@ -605,6 +798,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * Load the shared preferences
      */
     private void loadPreferences() {
+        Log.i(TAG, "preferences method load");
         preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         prefMapFollow = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_FOLLOW, false);
         prefMapCompass = preferences.getBoolean(SettingsActivity.PREF_KEY_MAP_COMPASS, false);
@@ -620,6 +814,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_TYPE, "2"));
         prefMethodRegional = Integer.valueOf(
                 preferences.getString(SettingsActivity.PREF_KEY_METHOD_REGIONAL, "1"));
+        prefInstructions = Integer.valueOf(
+                preferences.getString(SettingsActivity.PREF_KEY_INSTRUCTION, "1"));
     }
 
     /**
@@ -627,6 +823,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
      * will be started
      */
     private void checkPreferences() {
+        Log.i(TAG, "preferences method check");
         updateMapRotatingAndFollowing();
         if (prefMapCompass) {
             map.getUiSettings().setCompassEnabled(true);
@@ -737,11 +934,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             Toast.makeText(getApplicationContext(), message, Toast.LENGTH_SHORT).show();
             Log.e(TAG, message);
         }
-
-        showRoute();
     }
 
+
+/*
+    Function to manually display route segments
+    Not needed anymore.
+*/
+/*
     private void showRoute() {
+*/
 /*
         LatLng origin = new LatLng(51.954611,7.624338);
         LatLng dest = new LatLng(51.951483,7.627567);
@@ -798,15 +1000,18 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             map.addPolyline(lineOptions);
         }
 */
-
+/*
     }
+*/
 
-    private String getDirectionsUrl(LatLng origin,LatLng dest){
+/*  Function to get directions url for two points. Directions url is the url that gets the route from google directions API.
+
+    private String getDirectionsUrl(LatLng origin, LatLng dest) {
         // Origin of route
-        String str_origin = "origin="+origin.latitude+","+origin.longitude;
+        String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
 
         // Destination of route
-        String str_dest = "destination="+dest.latitude+","+dest.longitude;
+        String str_dest = "destination=" + dest.latitude + "," + dest.longitude;
 
         // Sensor enabled
         String sensor = "sensor=false";
@@ -815,16 +1020,16 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         String travellingMode = "mode=walking";
 
         // Building the parameters to the web service
-        String parameters = str_origin+"&"+str_dest+"&"+sensor+"&"+travellingMode;
+        String parameters = str_origin + "&" + str_dest + "&" + sensor + "&" + travellingMode;
 
         // Output format
         String output = "json";
 
         // Building the url to the web service
-        String url = "https://maps.googleapis.com/maps/api/directions/"+output+"?"+parameters;
+        String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
 
         return url;
-    }
+    }*/
 
 
     private void computeMapScreenRatio() {
@@ -1118,21 +1323,22 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         }
     }
 
-    /**
+    /*Class to manually download the route from google directions API
+    *//**
      * A class to download a specified route asynchronous and display it on the map.
-     */
-    private class DownloadRoute extends AsyncTask<String, Void, String>{
+     *//*
+    private class DownloadRoute extends AsyncTask<String, Void, String> {
 
         @Override
         protected String doInBackground(String... url) {
             // For storing data from web service
             String data = "";
 
-            try{
+            try {
                 // Fetching the data from web service
                 data = downloadUrl(url[0]);
-            }catch(Exception e){
-                Log.d("Background Task",e.toString());
+            } catch (Exception e) {
+                Log.d("Background Task", e.toString());
             }
             return data;
         }
@@ -1150,11 +1356,11 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             parserTask.execute(result);
         }
 
-        private String downloadUrl(String strUrl) throws IOException{
+        private String downloadUrl(String strUrl) throws IOException {
             String data = "";
             InputStream iStream = null;
             HttpURLConnection urlConnection = null;
-            try{
+            try {
                 URL url = new URL(strUrl);
 
                 // Creating an http connection to communicate with url
@@ -1171,7 +1377,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 StringBuffer sb = new StringBuffer();
 
                 String line = "";
-                while( ( line = br.readLine()) != null){
+                while ((line = br.readLine()) != null) {
                     sb.append(line);
                 }
 
@@ -1179,20 +1385,20 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
                 br.close();
 
-            }catch(Exception e){
+            } catch (Exception e) {
                 Log.d(TAG, "Exception while downloading url" + e.toString());
-            }finally{
+            } finally {
                 iStream.close();
                 urlConnection.disconnect();
             }
             return data;
         }
-    }
+    }*/
 
     /**
      * A class to parse the Google Places in JSON format
      */
-    private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String,String>>> >{
+    private class ParserTask extends AsyncTask<String, Integer, List<List<HashMap<String, String>>>> {
 
         // Parsing the data in non-ui thread
         @Override
@@ -1201,13 +1407,13 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             JSONObject jObject;
             List<List<HashMap<String, String>>> routes = null;
 
-            try{
+            try {
                 jObject = new JSONObject(jsonData[0]);
                 DirectionsJSONParser parser = new DirectionsJSONParser();
 
                 // Starts parsing data
                 routes = parser.parse(jObject);
-            }catch(Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             Log.i(TAG, "JSON Routes" + routes);
@@ -1222,7 +1428,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
             MarkerOptions markerOptions = new MarkerOptions();
 
             // Traversing through all the routes
-            for(int i=0;i<result.size();i++){
+            for (int i = 0; i < result.size(); i++) {
                 points = new ArrayList<LatLng>();
                 lineOptions = new PolylineOptions();
 
@@ -1230,8 +1436,8 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                 List<HashMap<String, String>> path = result.get(i);
 
                 // Fetching all the points in i-th route
-                for(int j=0;j<path.size();j++){
-                    HashMap<String,String> point = path.get(j);
+                for (int j = 0; j < path.size(); j++) {
+                    HashMap<String, String> point = path.get(j);
 
                     double lat = Double.parseDouble(point.get("lat"));
                     double lng = Double.parseDouble(point.get("lng"));
@@ -1457,7 +1663,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         double heading = getHeading(landmark);
 
         //rotation of arrow according to bearing
-        heading = heading -(360-currentCameraPosition.bearing);
+        heading = heading - (360 - currentCameraPosition.bearing);
 
         // Compute the reverse heading (from the landmark to the map center)
         double reverseHeading = heading;
@@ -1647,7 +1853,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
         LatLng mapCenter = map.getCameraPosition().target;
 
         // Calculate and return the heading
-        double heading =  (SphericalUtil.computeHeading(mapCenter, landmark.getPosition()) - currentCameraPosition.bearing) % 360;
+        double heading = (SphericalUtil.computeHeading(mapCenter, landmark.getPosition()) - currentCameraPosition.bearing) % 360;
         //return SphericalUtil.computeHeading(mapCenter, landmark.getPosition());
 
         if (heading < -180) {
@@ -2066,40 +2272,71 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
     private void setMapFollowingListenerEnabled(boolean mapFollowing, boolean compassTop) {
         if (mapFollowing && compassTop) {
+            Log.d(TAG, "mapFollowingandCompass true true");
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                private long lastUpdate = 0;
+                private long curTime;
                 @Override
                 public void onMyLocationChange(Location location) {
-                    if (location.getBearing()==0.0) {
-                        //TODO do something
-                        //animateTo(new LatLng(location.getLatitude(), location.getLongitude()), currentCameraPosition.bearing, currentCameraPosition.zoom);
-                    } else {
-                        animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), currentCameraPosition.zoom);
+                    curTime = System.currentTimeMillis();
+                    if ((curTime - lastUpdate) > 2000) {
+                        Log.d(TAG,"onmylocationchanged secondly");
+                        if (location.getBearing() == 0.0) {
+                            //TODO
+                            if (!initialCameraChange) {
+                                animateTo(new LatLng(location.getLatitude(), location.getLongitude()), map.getCameraPosition().bearing, map.getCameraPosition().zoom);
+                            }
+                        } else {
+                            if (!initialCameraChange) {
+                                animateTo(new LatLng(location.getLatitude(), location.getLongitude()), location.getBearing(), map.getCameraPosition().zoom);
+                            }
+                        }
+                        lastUpdate = curTime;
                     }
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
-        } else if(mapFollowing && !compassTop) {
+        } else if (mapFollowing && !compassTop) {
+            Log.d(TAG, "mapFollowingandCompass true false");
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                private long lastUpdate = 0;
+                private long curTime;
                 @Override
                 public void onMyLocationChange(Location location) {
-                    animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, currentCameraPosition.zoom);
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude());
+                    curTime = System.currentTimeMillis();
+                    if ((curTime - lastUpdate) > 1000) {
+                        if (!initialCameraChange) {
+                            animateTo(new LatLng(location.getLatitude(), location.getLongitude()), 0, map.getCameraPosition().zoom);
+                        }
+                        lastUpdate = curTime;
+                    }
                 }
             });
             map.getUiSettings().setMyLocationButtonEnabled(false);
         } else if (!mapFollowing && compassTop) {
+            Log.d(TAG, "mapFollowingandCompass false true");
             map.setOnMyLocationChangeListener(new GoogleMap.OnMyLocationChangeListener() {
+                private long lastUpdate = 0;
+                private long curTime;
+                @Override
                 public void onMyLocationChange(Location location) {
-                    if (location.getBearing()==0.0) {
-                        //TODO do something
-                    } else {
-                        animateTo(currentCameraPosition.target, location.getBearing(), currentCameraPosition.zoom);
+                    curTime = System.currentTimeMillis();
+                    if ((curTime - lastUpdate) > 1000) {
+                        if (location.getBearing() == 0.0) {
+                            if (!initialCameraChange) {
+                                animateTo(map.getCameraPosition().target, map.getCameraPosition().bearing, map.getCameraPosition().zoom);
+                            }
+                        } else {
+                            if (!initialCameraChange) {
+                                animateTo(map.getCameraPosition().target, location.getBearing(), map.getCameraPosition().zoom);
+                            }
+                        }
+                        lastUpdate = curTime;
                     }
-                    Log.d(TAG, "Map_Follow_MyLocationChanged: " + location.getLatitude() + ", " + location.getLongitude() + ", " + location.getBearing());
                 }
             });
         } else if (!mapFollowing && !compassTop) {
+            Log.d(TAG, "mapFollowingandCompass false false");
             map.setOnMyLocationChangeListener(null);
         }
     }
@@ -2115,6 +2352,7 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
                         map.getUiSettings().setMyLocationButtonEnabled(false);
                     }
                 };
+
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
                     setMapFollowingListenerEnabled(false, prefCompassTop);
@@ -2194,25 +2432,25 @@ public class MainActivity extends FragmentActivity implements GoogleMap.OnCamera
 
         Log.i(TAG, "Number of Landmarks per edge top, right, bottom, left: " + top.size() + ", " + right.size() + ", " + bottom.size() + ", " + left.size());
 
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_TOP; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_TOP; i++) {
             if (i < top.size()) {
                 top.get(i).setDistance(getDistance(top.get(i)));
                 filteredLandmarks.add(top.get(i));
             }
         }
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_RIGHT; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_RIGHT; i++) {
             if (i < right.size()) {
                 right.get(i).setDistance(getDistance(right.get(i)));
                 filteredLandmarks.add(right.get(i));
             }
         }
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_BOTTOM; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_BOTTOM; i++) {
             if (i < bottom.size()) {
                 bottom.get(i).setDistance(getDistance(bottom.get(i)));
                 filteredLandmarks.add(bottom.get(i));
             }
         }
-        for (int i = 0; i<OFF_SCREEN_LANDMARKS_LEFT; i++) {
+        for (int i = 0; i < OFF_SCREEN_LANDMARKS_LEFT; i++) {
             if (i < left.size()) {
                 left.get(i).setDistance(getDistance(left.get(i)));
                 filteredLandmarks.add(left.get(i));
